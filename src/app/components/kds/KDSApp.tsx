@@ -591,12 +591,15 @@ export function KDSApp() {
     return true;
   }
 
-  function checkAndShowAnalytics() {
+  function checkAndShowAnalytics(force: boolean = false) {
     const state = stateRef.current;
     const active = Object.values(state.orders).filter(o =>
       ['new', 'active', 'packed'].includes(o.status)
     ).length;
-    if (active === 0 && state.completedRush >= CFG.ANALYTICS_MIN_ORDERS) {
+    const elapsedRush = (state.currentSimSecs || 0) - (state.rushStartSimSecs || 0);
+    const timeUp = elapsedRush >= CFG.RUSH_SESSION_SECS;
+
+    if (force || timeUp || (active === 0 && state.completedRush >= CFG.ANALYTICS_MIN_ORDERS)) {
       const s = state.shiftStats;
       const onTimeRate = s.totalCompleted > 0
         ? Math.round((s.onTimeCount / s.totalCompleted) * 100) : 0;
@@ -615,12 +618,21 @@ export function KDSApp() {
         onTimeCount: s.onTimeCount,
       };
       state.showAnalyticsModal = true;
+
+      // Clean the whole screen and reset session
+      state.orders = {};
+      state.riders = [];
+      state.canceledStock = [];
+      state.stationLoads = { 'Hot': 0, 'Grill': 0, 'Assembly': 0 };
       state.completedRush = 0;
+      state.rushStartSimSecs = state.currentSimSecs || 0;
       state.shiftStats = {
         onTimeCount: 0, totalCompleted: 0, velocities: [],
         peakLoad: { 'Hot': 0, 'Grill': 0, 'Assembly': 0 },
         coldLog: 0, rejectedCount: 0,
       };
+      setUndoLabel('🏁 5-Minute Rush Session Complete! Reviewing Kitchen Analytics...');
+      playSound('handover', state.soundEnabled);
       update();
     }
   }
@@ -782,6 +794,7 @@ export function KDSApp() {
       });
 
       updateCapacity(state);
+      checkAndShowAnalytics();
       setVersion(v => v + 1);
     }, 1000);
 

@@ -9,6 +9,7 @@ export const CFG = {
   ANALYTICS_MIN_ORDERS:  3,
   SLA_WARN_SECS:         120,
   COLD_ORDER_SECS:       15,
+  RUSH_SESSION_SECS:     300, // 5 minutes rush session
 } as const;
 
 export const BRANDS: Record<string, {
@@ -208,6 +209,7 @@ export function createInitialState(): KDSState {
     analyticsSnapshot:   null,
     firstOrderSent:      false,
     firstOrderCountdown: 0,
+    rushStartSimSecs:    0,
   };
 }
 

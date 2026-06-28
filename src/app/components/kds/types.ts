@@ -107,4 +107,5 @@ export interface KDSState {
   analyticsSnapshot: AnalyticsData | null;
   firstOrderSent: boolean;
   firstOrderCountdown: number;
+  rushStartSimSecs: number;
 }
