@@ -28,16 +28,18 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
   const stns = [...new Set(order.items.map(i => i.station || 'Hot'))];
   const capWarns = stns.filter(s => (stationLoads[s] || 0) >= 90).map(s => `${s} Station load is high`);
 
-  // Group Prep matches (items already cooking that match this order)
+  // Prep Together matches (items already in kitchen queue/cooking matching this order)
   const incoming = new Set(order.items.map(i => i.name));
-  const groupPrepHits: Record<string, number> = {};
+  const prepTogetherHits: Record<string, number> = {};
   Object.values(orders).forEach(o => {
-    if (o.status !== 'active') return;
-    o.items.forEach(item => {
-      if (item.state === 'Cooking' && incoming.has(item.name)) {
-        groupPrepHits[item.name] = (groupPrepHits[item.name] || 0) + item.qty;
-      }
-    });
+    if (o.id === order.id) return; // skip self
+    if (o.status === 'active' || o.status === 'new') {
+      o.items.forEach(item => {
+        if (incoming.has(item.name) && item.state !== 'Ready') {
+          prepTogetherHits[item.name] = (prepTogetherHits[item.name] || 0) + item.qty;
+        }
+      });
+    }
   });
 
   // Ready Items Pool matches
@@ -109,10 +111,10 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
       {capWarns.map((w, i) => (
         <div key={i} style={{ padding: '5px 12px', background: 'rgba(248,228,125,0.5)', borderBottom: 'var(--kds-b)', fontSize: 10, fontStyle: 'italic', color: 'var(--kds-ink)' }}>Note: {w}</div>
       ))}
-      {Object.entries(groupPrepHits).map(([name, qty]) => (
+      {Object.entries(prepTogetherHits).map(([name, qty]) => (
         <div key={name} style={{ padding: '5px 12px', background: 'rgba(30,107,58,0.08)', borderBottom: 'var(--kds-b)', fontSize: 10, fontWeight: 700, color: 'var(--kds-green)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', background: 'var(--kds-green)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>Group Prep</span>
-          {qty}× {name} already cooking
+          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', background: 'var(--kds-green)', color: '#fff', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>⚡ Prep Together</span>
+          <span>Opportunity: {qty}× <strong>{name}</strong> in kitchen queue</span>
         </div>
       ))}
       {poolMatches.map(m => (
@@ -137,6 +139,7 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
             </div>
             {items.map(item => {
               const poolMatch = poolMatches.find(m => m.name === item.name);
+              const prepMatch = prepTogetherHits[item.name];
               return (
                 <div key={item.id} style={{ padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8, borderBottom: '1px solid rgba(55,8,8,0.06)' }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--kds-oxblood)', flexShrink: 0, minWidth: 18 }}>{item.qty}×</span>
@@ -148,13 +151,22 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
                       </div>
                     )}
                   </div>
-                  {poolMatch && (
-                    <span style={{
-                      fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
-                      padding: '2px 5px', borderRadius: 3,
-                      background: '#d97706', color: '#fff', flexShrink: 0,
-                    }}>↺ Up for Grabs</span>
-                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+                    {prepMatch && (
+                      <span style={{
+                        fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                        padding: '2px 5px', borderRadius: 3,
+                        background: 'var(--kds-green)', color: '#fff',
+                      }}>⚡ Prep Together</span>
+                    )}
+                    {poolMatch && (
+                      <span style={{
+                        fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                        padding: '2px 5px', borderRadius: 3,
+                        background: '#d97706', color: '#fff',
+                      }}>↺ Up for Grabs</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
