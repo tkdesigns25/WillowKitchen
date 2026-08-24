@@ -62,7 +62,7 @@ export function KDSHeader(props: HeaderProps) {
       </div>
 
       {/* Live stats */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <StatPill label="Cooking" value={cookingCount} />
         <StatPill label="Waiting" value={waitingCount} />
         <StatPill label="Done Today" value={doneCount} />

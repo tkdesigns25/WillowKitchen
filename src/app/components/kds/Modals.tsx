@@ -11,6 +11,8 @@ interface ModalsProps {
   showMenu: boolean;
   showReject: boolean;
   showAnalytics: boolean;
+  showTeaser?: boolean;
+  onCloseTeaser?: () => void;
   showPoolConfirm: boolean;
   poolConfirmItems: PoolItem[];
   rejectReason: string | null;
@@ -43,6 +45,7 @@ export function KDSModals(props: ModalsProps) {
       {props.showMenu     && <MenuModal {...props} />}
       {props.showReject   && <RejectModal {...props} />}
       {props.showAnalytics && props.analyticsSnapshot && <AnalyticsModal {...props} data={props.analyticsSnapshot} />}
+      {props.showTeaser && <TeaserHookModal onClose={props.onCloseTeaser || (() => {})} />}
       {props.showPoolConfirm && props.poolConfirmItems.length > 0 && (
         <PoolItemsModal
           items={props.poolConfirmItems}
@@ -604,3 +607,39 @@ function PoolItemsModal({ items, onUseItems, onCookFresh, onClose }: {
   );
 }
 
+
+
+export function TeaserHookModal({ onClose }: { onClose: () => void }) {
+  return (
+    <ModalShell onClose={onClose} width={460}>
+      <div style={{ padding: '24px 28px' }}>
+        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--kds-oxblood)', marginBottom: 10 }}>
+          VIEW FULL WORKING PRODUCT?
+        </div>
+        <h3 style={{ fontFamily: 'var(--kds-font-ser)', fontSize: 20, fontWeight: 700, color: 'var(--kds-ink)', marginBottom: 10, lineHeight: 1.25 }}>
+          This advanced control is locked in preview mode.
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--kds-graphite)', lineHeight: 1.65, marginBottom: 24 }}>
+          Would you like to experience the full, live KDS with simulated order floods and active platform toggles?
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <GhostBtn onClick={onClose}>No, Keep Reading</GhostBtn>
+          <a
+            href="https://willow-kitchen.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px',
+              background: 'var(--kds-oxblood)', color: 'var(--kds-vellum)', border: 'none',
+              borderRadius: 'var(--kds-r)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase', textDecoration: 'none'
+            }}
+          >
+            Yes, Open Live App &rarr;
+          </a>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}

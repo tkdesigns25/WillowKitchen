@@ -71,9 +71,77 @@ function updateCapacity(state: KDSState) {
   }
 }
 
+
+function seedPreviewState(state: KDSState) {
+  state.isOpen = true;
+  state.orderCounter = 108;
+  state.orders = {};
+  state.riders = [];
+  state.canceledStock = [];
+  
+  // Order #108 (Just Came In)
+  state.orders['item-108'] = {
+    id: 'item-108',
+    brand: 'Burger Craft',
+    source: 'Swiggy',
+    customer: 'Rahul S.',
+    items: [
+      makeItem('Classic French Fries', 1, 'Extra Spicy please!'),
+      makeItem('Smoky BBQ Chicken Skewers', 1)
+    ],
+    notes: '',
+    status: 'new',
+    arrivedAt: Date.now() - 57000,
+    autoCancelSecs: 132,
+    acceptedAt: null, packedAt: null, completedAt: null,
+    slaMinutes: 15, slaSecsRemaining: 900, elapsedPrepSimSecs: 0,
+    riderStatus: 'none', riderEta: null, riderId: null, riderWaitSecs: 0, hasOOS: false
+  };
+
+  // Order #102 (Cooking Now)
+  const o102 = {
+    id: 'item-102',
+    brand: 'Burger Craft',
+    source: 'Swiggy',
+    customer: 'Siddharth M.',
+    items: [
+      { id: 'i102-1', name: 'Crispy Golden Onion Rings', qty: 1, station: 'Grill', prepSecs: 10, state: 'Cooking' as const, cookingElapsedSimSecs: 5, queuePriority: 1, modifier: '' },
+      { id: 'i102-2', name: 'Garlic Herb Grilled Chicken', qty: 1, station: 'Grill', prepSecs: 16, state: 'Ready' as const, cookingElapsedSimSecs: 16, queuePriority: 2, modifier: '' },
+      { id: 'i102-3', name: 'Grilled Chicken Wings (6pcs)', qty: 1, station: 'Grill', prepSecs: 14, state: 'Cooking' as const, cookingElapsedSimSecs: 5, queuePriority: 3, modifier: '' }
+    ],
+    notes: '', status: 'active' as const, arrivedAt: Date.now() - 84000, autoCancelSecs: 0,
+    acceptedAt: Date.now() - 84000, packedAt: null, completedAt: null,
+    slaMinutes: 15, slaSecsRemaining: 816, elapsedPrepSimSecs: 84,
+    riderStatus: 'transit' as const, riderEta: 180, riderId: 'RD-002', riderWaitSecs: 0, hasOOS: false
+  };
+  state.orders['item-102'] = o102;
+
+  // Riders
+  state.riders = [
+    { id: 'RD-002', name: 'Priya S.', platform: 'Swiggy', orderId: 'item-102', tag: 'Tag: Blue-2', eta: 180, status: 'transit', waitSecs: 0 },
+    { id: 'RD-001', name: 'Rajan K.', platform: 'Swiggy', orderId: null, tag: 'Tag: Red-1', eta: 64, status: 'transit', waitSecs: 0 },
+  ];
+
+  // Up For Grabs stock
+  state.canceledStock = [
+    { id: 'c1', name: 'Asian Sesame Tofu Bowl', qty: 1, createdAtSimSecs: 51, canceledBy: 'Customer' },
+    { id: 'c2', name: 'Garlic Dip Portion', qty: 1, createdAtSimSecs: 15, canceledBy: 'Customer' },
+  ];
+
+  state.firstOrderSent = true;
+}
+
 // ── Main KDS Component ─────────────────────────────────────────
 export function KDSApp() {
-  const stateRef = useRef<KDSState>(createInitialState());
+  const isEmbedMode = React.useMemo(() => typeof window !== "undefined" && (window.location.search.includes("preview=true") || window.self !== window.top), []);
+  const stateRef = useRef<KDSState>(null!);
+  if (!stateRef.current) {
+    const s = createInitialState();
+    if (typeof window !== "undefined" && (window.location.search.includes("preview=true") || window.self !== window.top)) {
+      seedPreviewState(s);
+    }
+    stateRef.current = s;
+  }
   const [, setVersion] = useState(0);
   const update = useCallback(() => setVersion(v => v + 1), []);
 
@@ -81,6 +149,7 @@ export function KDSApp() {
   const [showNewOrder,    setShowNewOrder]    = useState(false);
   const [showPause,       setShowPause]       = useState(false);
   const [showMenu,        setShowMenu]        = useState(false);
+  const [showTeaser,      setShowTeaser]      = useState(false);
   const [undoLabel,       setUndoLabel]       = useState('');
   const [showPoolConfirm, setShowPoolConfirm] = useState(false);
   const [poolConfirmItems, setPoolConfirmItems] = useState<Array<{name: string; ageMins: number; matchId: string}>>([]);
@@ -367,16 +436,21 @@ export function KDSApp() {
     if (!order) return;
     const snapshot = deepClone(order);
 
-    order.items.forEach(item => {
-      state.canceledStock.push({ id: makeId(), name: item.name, qty: item.qty, createdAtSimSecs: state.currentSimSecs || 0, canceledBy: 'Kitchen' });
-    });
+    // Only items in preparation queue (active/packed orders) move to Up for Grabs
+    if (order.status !== 'new') {
+      order.items.forEach(item => {
+        state.canceledStock.push({ id: makeId(), name: item.name, qty: item.qty, createdAtSimSecs: state.currentSimSecs || 0, canceledBy: 'Kitchen' });
+      });
+    }
 
     pushUndo(`Order ${ordNum(orderId)} cancelled`, () => {
       stateRef.current.orders[orderId] = snapshot;
-      order.items.forEach(item => {
-        const idx = stateRef.current.canceledStock.findIndex(c => c.name === item.name);
-        if (idx !== -1) stateRef.current.canceledStock.splice(idx, 1);
-      });
+      if (order.status !== 'new') {
+        order.items.forEach(item => {
+          const idx = stateRef.current.canceledStock.findIndex(c => c.name === item.name);
+          if (idx !== -1) stateRef.current.canceledStock.splice(idx, 1);
+        });
+      }
       stateRef.current.shiftStats.rejectedCount = Math.max(0, stateRef.current.shiftStats.rejectedCount - 1);
     });
 
@@ -392,21 +466,26 @@ export function KDSApp() {
     const order = state.orders[orderId];
     if (!order) return;
 
-    order.items.forEach(item => {
-      state.canceledStock.push({
-        id: makeId(),
-        name: item.name,
-        qty: item.qty,
-        createdAtSimSecs: state.currentSimSecs || 0,
-        canceledBy: 'Customer',
+    // Only items in preparation queue (active/packed orders) move to Up for Grabs
+    if (order.status !== 'new') {
+      order.items.forEach(item => {
+        state.canceledStock.push({
+          id: makeId(),
+          name: item.name,
+          qty: item.qty,
+          createdAtSimSecs: state.currentSimSecs || 0,
+          canceledBy: 'Customer',
+        });
       });
-    });
+      setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer — Items moved to Up for Grabs`);
+    } else {
+      setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer`);
+    }
 
     const rider = state.riders.find(r => r.orderId === orderId);
     if (rider) rider.orderId = null;
 
     delete state.orders[orderId];
-    setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer — Items moved to Up for Grabs`);
     playSound('slaWarn', state.soundEnabled);
     update();
   }
@@ -659,7 +738,8 @@ export function KDSApp() {
 
       // Subsequent orders: ~20% chance per second (~1 every 5 s on average for balanced 40% slower flow)
       const allChannelsPaused = Object.values(state.pausedChannels).every(v => v);
-      if (state.isOpen && state.firstOrderSent && !allChannelsPaused && !state.throttleActive && Math.random() < 0.20) {
+      const activeOrdsCount = Object.values(state.orders).filter(o => ['new', 'active', 'packed'].includes(o.status)).length;
+      if (state.isOpen && state.firstOrderSent && !allChannelsPaused && !state.throttleActive && !isEmbedMode && Math.random() < 0.20) {
         generateSimulatedOrder();
       }
 
@@ -793,6 +873,13 @@ export function KDSApp() {
         if (rider.status === 'arrived') rider.waitSecs = (rider.waitSecs || 0) + 3;
       });
 
+            // Re-seed preview loop if all orders clear in embed mode
+      if (isEmbedMode) {
+        const remainingActive = Object.values(state.orders).filter(o => ['new', 'active', 'packed'].includes(o.status)).length;
+        if (remainingActive === 0) {
+          seedPreviewState(state);
+        }
+      }
       updateCapacity(state);
       checkAndShowAnalytics();
       setVersion(v => v + 1);
@@ -889,14 +976,14 @@ export function KDSApp() {
         doneCount={s.completed.length}
         stationLoads={s.stationLoads}
         clock={clock}
-        onOpen={() => setOpen(true)}
-        onClose={() => setOpen(false)}
-        onAutoAcceptOn={() => setAutoAccept(true)}
-        onAutoAcceptOff={() => setAutoAccept(false)}
+        onOpen={() => { if (isEmbedMode) setShowTeaser(true); else setOpen(true); }}
+        onClose={() => { if (isEmbedMode) setShowTeaser(true); else setOpen(false); }}
+        onAutoAcceptOn={() => { if (isEmbedMode) setShowTeaser(true); else setAutoAccept(true); }}
+        onAutoAcceptOff={() => { if (isEmbedMode) setShowTeaser(true); else setAutoAccept(false); }}
         onToggleSound={toggleSound}
-        onOpenNewOrder={() => setShowNewOrder(true)}
-        onOpenPause={() => setShowPause(true)}
-        onOpenMenu={() => setShowMenu(true)}
+        onOpenNewOrder={() => { if (isEmbedMode) setShowTeaser(true); else setShowNewOrder(true); }}
+        onOpenPause={() => { if (isEmbedMode) setShowTeaser(true); else setShowPause(true); }}
+        onOpenMenu={() => { if (isEmbedMode) setShowTeaser(true); else setShowMenu(true); }}
       />
 
       {/* ── System Banners ──────────────────────────────────── */}
@@ -1012,6 +1099,8 @@ export function KDSApp() {
         showNewOrder={showNewOrder}
         showPause={showPause}
         showMenu={showMenu}
+        showTeaser={showTeaser}
+        onCloseTeaser={() => setShowTeaser(false)}
         showReject={!!s.rejectingOrderId}
         showAnalytics={s.showAnalyticsModal}
         showPoolConfirm={showPoolConfirm}
