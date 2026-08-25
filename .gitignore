@@ -11,10 +11,13 @@ lerna-debug.log*
 node_modules/
 jspm_packages/
 
-# Output directory for Vite build
+# Output directory for Vite build (internal, not for direct use)
 dist/
 dist-ssr/
 *.local
+
+# Root assets/ is the compiled output for direct file:// opening — DO NOT ignore
+# assets/
 
 # Editor directories and files
 .vscode/*
