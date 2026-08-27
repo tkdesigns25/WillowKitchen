@@ -1,39 +1,54 @@
 // post-build.mjs
-// After every `vite build`:
-// 1. Patches dist/index.html (removes type="module", adds defer, strips crossorigin)
-// 2. Copies the patched index.html + compiled assets to the project root
-//    so double-clicking the root index.html opens the app with no server needed.
+// Runs after `vite build` to create a standalone.html for local file:// access.
+//
+// Rules:
+// - NEVER touches root index.html (Vite needs it as its source template)
+// - NEVER modifies dist/ (Vercel and gh-pages serve from dist/ — leave it clean)
+// - Generates standalone.html by inlining all JS + CSS into one self-contained file
+//   so it can be opened by double-clicking with no server, no assets/ folder needed.
 
-import { readFileSync, writeFileSync, copyFileSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const distDir = 'dist';
-const rootAssets = 'assets';
+const distAssetsDir = join(distDir, 'assets');
 
-// --- Patch dist/index.html ---
-const htmlPath = join(distDir, 'index.html');
-let html = readFileSync(htmlPath, 'utf8');
-html = html.replace(/ type="module"/g, ' defer');
-html = html.replace(/ crossorigin/g, '');
-writeFileSync(htmlPath, html, 'utf8');
-console.log('✓ Patched dist/index.html (defer, no type=module)');
+const html = readFileSync(join(distDir, 'index.html'), 'utf8');
 
-// --- Copy built assets to root ---
-mkdirSync(rootAssets, { recursive: true });
-const assetFiles = readdirSync(join(distDir, 'assets'));
-for (const file of assetFiles) {
-  copyFileSync(join(distDir, 'assets', file), join(rootAssets, file));
+// Find JS and CSS asset filenames from the built HTML
+const jsMatch = html.match(/src="\.\/assets\/(index-[^"]+\.js)"/);
+const cssMatch = html.match(/href="\.\/assets\/(index-[^"]+\.css)"/);
+
+if (!jsMatch) {
+  console.error('❌ Could not find JS asset in dist/index.html');
+  process.exit(1);
 }
-console.log(`✓ Copied ${assetFiles.length} asset(s) to root /assets/`);
 
-// --- Copy patched index.html to root ---
-copyFileSync(htmlPath, 'index.html');
-console.log('✓ Copied patched index.html to project root');
+const jsContent = readFileSync(join(distAssetsDir, jsMatch[1]), 'utf8');
+const cssContent = cssMatch ? readFileSync(join(distAssetsDir, cssMatch[1]), 'utf8') : '';
 
-// --- Copy favicon ---
-try {
-  copyFileSync(join(distDir, 'favicon.svg'), 'favicon.svg');
-  console.log('✓ Copied favicon.svg to root');
-} catch {}
+// Build standalone HTML — inline everything, no external deps, no type=module
+let standalone = html;
 
-console.log('\n🎉 Done! Open index.html directly in your browser — no server needed.');
+// Replace <link rel=stylesheet ...> with inline <style>
+if (cssMatch) {
+  standalone = standalone.replace(
+    /<link rel="stylesheet"[^>]+>/,
+    `<style>\n${cssContent}\n</style>`
+  );
+}
+
+// Replace <script type="module" ...></script> with inline <script defer>
+standalone = standalone.replace(
+  /<script type="module"[^>]+><\/script>/,
+  `<script defer>\n${jsContent}\n</script>`
+);
+
+// Strip crossorigin attributes
+standalone = standalone.replace(/ crossorigin/g, '');
+
+writeFileSync('standalone.html', standalone, 'utf8');
+
+const kb = Math.round(standalone.length / 1024);
+console.log(`✓ Generated standalone.html (${kb} KB) — open by double-clicking, no server needed`);
+console.log('✓ dist/ and root index.html left untouched');

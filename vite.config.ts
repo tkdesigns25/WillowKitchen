@@ -14,12 +14,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        format: 'iife',
-        entryFileNames: 'assets/[name]-[hash].js',
-      },
-    },
-  },
 })
