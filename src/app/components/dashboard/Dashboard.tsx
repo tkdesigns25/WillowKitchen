@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { KDSState, KDSOrder, KDSItem } from './types';
+import type { AppState, Order, Item } from './types';
 import {
   CFG, BRANDS, ITEM_BRAND,
   makeId, makeItem, makeOrder, createInitialState, deepClone,
@@ -8,17 +8,17 @@ import {
   safeStorageSet,
 } from './config';
 import { playSound } from './audio';
-import { KDSHeader } from './Header';
+import { DashboardHeader } from './Header';
 import { NewOrderCard } from './NewOrderCard';
 import { ActiveOrderCard } from './ActiveOrderCard';
 import { Column3 } from './Column3';
 import { Column4 } from './Column4';
-import { KDSModals } from './Modals';
+import { DashboardModals } from './Modals';
 import { UndoToast } from './UndoToast';
 
 // ── Helpers ────────────────────────────────────────────────────
-function getGroupPrepCandidates(station: string, orders: Record<string, KDSOrder>) {
-  const map: Record<string, Array<{orderId: string; item: KDSItem; sla: number}>> = {};
+function getGroupPrepCandidates(station: string, orders: Record<string, Order>) {
+  const map: Record<string, Array<{orderId: string; item: Item; sla: number}>> = {};
   Object.values(orders).forEach(o => {
     if (o.status !== 'active') return;
     o.items.forEach(item => {
@@ -37,7 +37,7 @@ function getGroupPrepCandidates(station: string, orders: Record<string, KDSOrder
     .map(([name, list]) => ({ name, totalQty: list.reduce((s, x) => s + x.item.qty, 0), items: list }));
 }
 
-function updateCapacity(state: KDSState) {
+function updateCapacity(state: AppState) {
   const counts: Record<string, number> = { 'Hot': 0, 'Grill': 0, 'Assembly': 0 };
   Object.values(state.orders).forEach(o => {
     if (o.status === 'active') {
@@ -72,7 +72,7 @@ function updateCapacity(state: KDSState) {
 }
 
 
-function seedPreviewState(state: KDSState) {
+function seedPreviewState(state: AppState) {
   state.isOpen = true;
   state.orderCounter = 108;
   state.orders = {};
@@ -131,10 +131,10 @@ function seedPreviewState(state: KDSState) {
   state.firstOrderSent = true;
 }
 
-// ── Main KDS Component ─────────────────────────────────────────
-export function KDSApp() {
+// ── Main Willow Kitchen Component ─────────────────────────────────────────
+export function Dashboard() {
   const isEmbedMode = React.useMemo(() => typeof window !== "undefined" && (window.location.search.includes("preview=true") || window.self !== window.top), []);
-  const stateRef = useRef<KDSState>(null!);
+  const stateRef = useRef<AppState>(null!);
   if (!stateRef.current) {
     const s = createInitialState();
     if (typeof window !== "undefined" && (window.location.search.includes("preview=true") || window.self !== window.top)) {
@@ -217,7 +217,7 @@ export function KDSApp() {
     order.riderEta = rider.eta;
   }
 
-  function acceptOrderCore(orderId: string, state: KDSState) {
+  function acceptOrderCore(orderId: string, state: AppState) {
     const order = state.orders[orderId];
     if (!order) return;
     order.status             = 'active';
@@ -527,7 +527,7 @@ export function KDSApp() {
     const item  = Object.values(state.orders).flatMap(o => o.items).find(i => i.id === itemId);
     if (!item) return;
     const station = item.station;
-    const all: Array<{orderId: string; item: KDSItem}> = [];
+    const all: Array<{orderId: string; item: Item}> = [];
     Object.values(state.orders).forEach(o => {
       if (o.status === 'active') {
         o.items.forEach(it => {
@@ -552,7 +552,7 @@ export function KDSApp() {
 
   function reorderQueue(draggedItemId: string, targetItemId: string, station: string) {
     const state = stateRef.current;
-    const all: Array<{orderId: string; item: KDSItem}> = [];
+    const all: Array<{orderId: string; item: Item}> = [];
     Object.values(state.orders).forEach(o => {
       if (o.status === 'active') {
         o.items.forEach(item => {
@@ -633,7 +633,7 @@ export function KDSApp() {
   function toggleSound() {
     const state = stateRef.current;
     state.soundEnabled = !state.soundEnabled;
-    safeStorageSet('kds-sound', String(state.soundEnabled));
+    safeStorageSet('wk-sound', String(state.soundEnabled));
     if (state.soundEnabled) playSound('newOrder', true);
     update();
   }
@@ -646,7 +646,7 @@ export function KDSApp() {
   // BUG FIX #2: Manual order submission auto-accepts when autoAccept is ON
   function submitManualOrder(params: {
     customer: string; platform: string; brand: string;
-    items: KDSItem[]; notes: string;
+    items: Item[]; notes: string;
   }) {
     if (params.items.length === 0) return false;
     const state = stateRef.current;
@@ -896,7 +896,7 @@ export function KDSApp() {
     const brandData = BRANDS[selectedBrand];
 
     const n = Math.floor(Math.random() * 3) + 2;
-    const items: KDSItem[] = [];
+    const items: Item[] = [];
     for (let i = 0; i < n; i++) {
       const sel = brandData.items[Math.floor(Math.random() * brandData.items.length)];
       const modifier = Math.random() < 0.30 ? pickNote() : '';
@@ -963,11 +963,11 @@ export function KDSApp() {
   // ── Render ────────────────────────────────────────────────────
   return (
     <div
-      className="kds-root"
-      style={{ background: 'var(--kds-vellum)', color: 'var(--kds-ink)', height: '100dvh', overflow: 'hidden', fontFamily: 'var(--kds-font-ui)' }}
+      className="wk-root"
+      style={{ background: 'var(--wk-vellum)', color: 'var(--wk-ink)', height: '100dvh', overflow: 'hidden', fontFamily: 'var(--wk-font-ui)' }}
     >
       {/* ── Header ─────────────────────────────────────────── */}
-      <KDSHeader
+      <DashboardHeader
         isOpen={s.isOpen}
         autoAccept={s.autoAccept}
         soundEnabled={s.soundEnabled}
@@ -1005,12 +1005,12 @@ export function KDSApp() {
         showPause={showPauseBanner}
       >
         {/* Col 1: New Orders */}
-        <section style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: 'var(--kds-b)', background: 'var(--kds-vellum)' }}>
-          <div style={{ flexShrink: 0, height: 'var(--kds-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', background: 'var(--kds-vellum)', borderBottom: 'var(--kds-b)' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--kds-graphite)' }}>Just Came In</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 18, padding: '0 4px', background: 'var(--kds-oxblood)', color: 'var(--kds-vellum)', borderRadius: 'var(--kds-r)', fontSize: 10, fontWeight: 700 }}>{newOrders.length}</span>
+        <section style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: 'var(--wk-b)', background: 'var(--wk-vellum)' }}>
+          <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>Just Came In</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 18, padding: '0 4px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderRadius: 'var(--wk-r)', fontSize: 10, fontWeight: 700 }}>{newOrders.length}</span>
           </div>
-          <div className="kds-scroll" style={{ flex: 1, padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="wk-scroll" style={{ flex: 1, padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ flexShrink: 0, height: 12 }} aria-hidden />
             {newOrders.length === 0 ? (
               <EmptyState icon="◎" text="No new orders" />
@@ -1031,13 +1031,13 @@ export function KDSApp() {
         </section>
 
         {/* Col 2: Cooking Now */}
-        <section style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: 'var(--kds-b)', background: 'var(--kds-vellum)' }}>
-          <div style={{ flexShrink: 0, height: 'var(--kds-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', background: 'var(--kds-vellum)', borderBottom: 'var(--kds-b)' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--kds-graphite)' }}>Cooking Now</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 18, padding: '0 4px', background: 'var(--kds-oxblood)', color: 'var(--kds-vellum)', borderRadius: 'var(--kds-r)', fontSize: 10, fontWeight: 700 }}>{activeOrders.length}</span>
+        <section style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: 'var(--wk-b)', background: 'var(--wk-vellum)' }}>
+          <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>Cooking Now</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 18, padding: '0 4px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderRadius: 'var(--wk-r)', fontSize: 10, fontWeight: 700 }}>{activeOrders.length}</span>
           </div>
           <div
-            className="kds-scroll"
+            className="wk-scroll"
             style={activeOrders.length === 0
               ? { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }
               : { flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 10px 10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gridAutoRows: 'min-content', alignContent: 'start', alignItems: 'start', gap: 10 }
@@ -1095,7 +1095,7 @@ export function KDSApp() {
       </MainGrid>
 
       {/* ── Modals ──────────────────────────────────────────── */}
-      <KDSModals
+      <DashboardModals
         showNewOrder={showNewOrder}
         showPause={showPause}
         showMenu={showMenu}
@@ -1143,11 +1143,11 @@ function SystemBanners({ isOpen, throttleActive, showPause, pausedList, pausedBr
   onReopen: () => void; onResumeApps: () => void;
 }) {
   const banners: React.ReactNode[] = [];
-  let top = 56; // --kds-hh
+  let top = 56; // --wk-hh
 
   if (!isOpen) {
     banners.push(
-      <div key="closed" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--kds-gold)', color: 'var(--kds-ink)', borderBottom: 'var(--kds-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
+      <div key="closed" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--wk-gold)', color: 'var(--wk-ink)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
         <span style={{ fontSize: 18 }}>⛔</span>
         <span style={{ flex: 1 }}>Kitchen is CLOSED — not taking new orders right now</span>
         <GhostBtn onClick={onReopen} style={{ fontSize: 11 }}>Re-open Kitchen</GhostBtn>
@@ -1158,7 +1158,7 @@ function SystemBanners({ isOpen, throttleActive, showPause, pausedList, pausedBr
 
   if (throttleActive) {
     banners.push(
-      <div key="throttle" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--kds-oxblood)', color: 'var(--kds-vellum)', borderBottom: 'var(--kds-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
+      <div key="throttle" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
         <span style={{ fontSize: 18 }}>⚠️</span>
         <span>Kitchen is very busy — delivery apps slowed down by 5 min</span>
       </div>
@@ -1170,7 +1170,7 @@ function SystemBanners({ isOpen, throttleActive, showPause, pausedList, pausedBr
     const pausedKeys = Object.keys(pausedBrands || {}).filter(k => k !== 'All Brands' && pausedBrands[k]);
     const brandTxt = !pausedBrands?.['All Brands'] && pausedKeys.length > 0 ? ` [${pausedKeys.join(', ')}]` : '';
     banners.push(
-      <div key="pause" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--kds-gold)', color: 'var(--kds-ink)', borderBottom: 'var(--kds-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
+      <div key="pause" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--wk-gold)', color: 'var(--wk-ink)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
         <span style={{ fontSize: 18 }}>⏸</span>
         <span>Apps paused: {pausedList.join(', ')}{brandTxt} ({fmtMSS(pausedRemaining)} remaining)</span>
         <GhostBtn onClick={onResumeApps} style={{ marginLeft: 'auto', fontSize: 11 }}>Resume Apps</GhostBtn>
@@ -1189,12 +1189,12 @@ function MainGrid({ children, isOpen, throttleActive, showPause }: {
   return (
     <main style={{
       position: 'fixed',
-      top: `calc(var(--kds-hh) + ${bannerCount * 38}px)`,
+      top: `calc(var(--wk-hh) + ${bannerCount * 38}px)`,
       left: 0, right: 0, bottom: 0,
       display: 'grid',
       gridTemplateColumns: '18% 32% 30% 20%',
       transition: 'top 0.2s',
-      borderTop: '6px solid var(--kds-vellum)',
+      borderTop: '6px solid var(--wk-vellum)',
     }}>
       {children}
     </main>
@@ -1208,15 +1208,15 @@ export function GhostBtn({ children, onClick, style, disabled, className }: {
 }) {
   return (
     <button
-      className={`kds-interactive ${className ?? ''}`}
+      className={`wk-interactive ${className ?? ''}`}
       onClick={onClick}
       disabled={disabled}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
         padding: '7px 13px',
-        background: 'var(--kds-vellum)', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)',
-        color: 'var(--kds-oxblood)',
-        fontFamily: 'var(--kds-font-ui)', fontWeight: 700, fontSize: 11,
+        background: 'var(--wk-vellum)', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)',
+        color: 'var(--wk-oxblood)',
+        fontFamily: 'var(--wk-font-ui)', fontWeight: 700, fontSize: 11,
         letterSpacing: '0.07em', textTransform: 'uppercase',
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
         whiteSpace: 'nowrap',
@@ -1233,15 +1233,15 @@ export function OxBtn({ children, onClick, style, disabled }: {
 }) {
   return (
     <button
-      className="kds-interactive"
+      className="wk-interactive"
       onClick={onClick}
       disabled={disabled}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         padding: '8px 16px',
-        background: 'var(--kds-oxblood)', border: '1px solid var(--kds-oxblood)', borderRadius: 'var(--kds-r)',
-        color: 'var(--kds-vellum)',
-        fontFamily: 'var(--kds-font-ui)', fontWeight: 700, fontSize: 11,
+        background: 'var(--wk-oxblood)', border: '1px solid var(--wk-oxblood)', borderRadius: 'var(--wk-r)',
+        color: 'var(--wk-vellum)',
+        fontFamily: 'var(--wk-font-ui)', fontWeight: 700, fontSize: 11,
         letterSpacing: '0.07em', textTransform: 'uppercase',
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
         whiteSpace: 'nowrap',
@@ -1270,7 +1270,7 @@ export function ChannelBadge({ source }: { source: string }) {
 
 export function EmptyState({ icon, text }: { icon: string; text: string }) {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px', gap: 8, color: 'var(--kds-graphite)', opacity: 0.45 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px', gap: 8, color: 'var(--wk-graphite)', opacity: 0.45 }}>
       <div style={{ fontSize: 34, lineHeight: 1 }}>{icon}</div>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{text}</div>
     </div>

@@ -1,6 +1,6 @@
 # Willow Kitchen — Project Evolution & Product Journey Documentation
 
-> **Purpose**: This document provides an exhaustive, chronological trace of how **Willow Kitchen** evolved from an initial concept into a production-grade, multi-brand Cloud Kitchen Display System (KDS). It is designed to share back with AI Studio to document how operational features, UI/UX architecture, and simulation mechanics shaped up across development iterations.
+> **Purpose**: This document provides an exhaustive, chronological trace of how **Willow Kitchen** evolved from an initial concept into a production-grade, multi-brand Cloud cloud kitchen order display and management system. It is designed to share back with AI Studio to document how operational features, UI/UX architecture, and simulation mechanics shaped up across development iterations.
 
 ---
 
@@ -18,19 +18,19 @@
 
 ## 1. System Vision & Core Architecture
 
-Willow Kitchen is designed as an intelligent, high-throughput Kitchen Display System tailored for modern cloud kitchens managing multiple virtual brands under one roof. Unlike traditional single-restaurant KDS displays, Willow Kitchen solves complex multi-brand routing, station load balancing, rider synchronization, and inventory loss prevention.
+Willow Kitchen is designed as an intelligent, high-throughput order management display tailored for modern cloud kitchens managing multiple virtual brands under one roof. Unlike traditional single-restaurant order displays, Willow Kitchen solves complex multi-brand routing, station load balancing, rider synchronization, and inventory loss prevention.
 
 ### Core Technology Stack:
 - **Frontend Framework**: React with TypeScript & Vite
-- **State Management**: Reactive ref-based state engine (`KDSState`) running on a synchronized 1-second simulation tick loop.
-- **Design System**: Custom Vanilla CSS design tokens (`--kds-vellum`, `--kds-oxblood`, `--kds-linen`, `--kds-ink`) enforcing a warm, high-contrast, premium aesthetic.
+- **State Management**: Reactive ref-based state engine (`AppState`) running on a synchronized 1-second simulation tick loop.
+- **Design System**: Custom Vanilla CSS design tokens (`--wk-vellum`, `--wk-oxblood`, `--wk-linen`, `--wk-ink`) enforcing a warm, high-contrast, premium aesthetic.
 
 ---
 
 ## Phase 1: Foundations & 4-Column Workflow
 
 ### Initial Problem Space:
-Early KDS interfaces struggled with visual clutter when handling incoming aggregator orders (Swiggy, Zomato, Direct App) alongside active preparation and rider pickups.
+Early dashboard interfaces struggled with visual clutter when handling incoming aggregator orders (Swiggy, Zomato, Direct App) alongside active preparation and rider pickups.
 
 ### Key Evolutions Implemented:
 - **4-Column Operational Kanban**:

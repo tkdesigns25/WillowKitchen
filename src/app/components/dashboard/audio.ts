@@ -21,7 +21,7 @@ function tone(freq: number, type: OscillatorType, startOffset: number, duration:
   } catch (_) {}
 }
 
-export function playSound(type: 'newOrder' | 'slaWarn' | 'riderHere', enabled: boolean) {
+export function playSound(type: 'newOrder' | 'slaWarn' | 'riderHere' | 'handover', enabled: boolean) {
   if (!enabled) return;
   if (type === 'newOrder') {
     tone(880,  'sine',   0,    0.22, 0.35);
@@ -33,5 +33,9 @@ export function playSound(type: 'newOrder' | 'slaWarn' | 'riderHere', enabled: b
   } else if (type === 'riderHere') {
     tone(660, 'sine',   0,    0.35, 0.3);
     tone(880, 'sine',   0.3,  0.3,  0.25);
+  } else if (type === 'handover') {
+    tone(880,  'sine', 0,    0.18, 0.3);
+    tone(1100, 'sine', 0.18, 0.18, 0.28);
+    tone(1320, 'sine', 0.36, 0.28, 0.25);
   }
 }

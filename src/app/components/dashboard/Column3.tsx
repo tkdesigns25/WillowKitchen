@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
-import type { KDSOrder, KDSItem } from './types';
+import type { Order, Item } from './types';
 import { STATIONS, fmtMSS, ordNum } from './config';
 
 interface Props {
-  orders: Record<string, KDSOrder>;
+  orders: Record<string, Order>;
   stationLoads: Record<string, number>;
   onStartItem: (orderId: string, itemId: string) => void;
   onHoldItem: (orderId: string, itemId: string) => void;
@@ -15,19 +15,19 @@ interface Props {
 }
 
 type QueueEntry = 
-  | { type: 'single'; order: KDSOrder; item: KDSItem }
-  | { type: 'group-prep'; name: string; totalQty: number; station: string; items: Array<{order: KDSOrder; item: KDSItem}>; primaryItem: KDSItem }
-  | { type: 'group-cooking'; name: string; totalQty: number; station: string; items: Array<{order: KDSOrder; item: KDSItem}>; primaryItem: KDSItem };
+  | { type: 'single'; order: Order; item: Item }
+  | { type: 'group-prep'; name: string; totalQty: number; station: string; items: Array<{order: Order; item: Item}>; primaryItem: Item }
+  | { type: 'group-cooking'; name: string; totalQty: number; station: string; items: Array<{order: Order; item: Item}>; primaryItem: Item };
 
 export function Column3(props: Props) {
   return (
-    <aside style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--kds-vellum)', borderRight: 'var(--kds-b)' }}>
+    <aside style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--wk-vellum)', borderRight: 'var(--wk-b)' }}>
       {/* Station Queues — full height */}
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-        <div style={{ flexShrink: 0, height: 'var(--kds-ch)', display: 'flex', alignItems: 'center', padding: '0 12px', borderBottom: 'var(--kds-b)', background: 'var(--kds-vellum)' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--kds-graphite)' }}>Station Queues</span>
+        <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', padding: '0 12px', borderBottom: 'var(--wk-b)', background: 'var(--wk-vellum)' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>Station Queues</span>
         </div>
-        <div className="kds-scroll" style={{ flex: 1, padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="wk-scroll" style={{ flex: 1, padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ flexShrink: 0, height: 12 }} aria-hidden />
           {STATIONS.map(stn => (
             <StationQueue
@@ -52,7 +52,7 @@ export function Column3(props: Props) {
 // ── Station Queue ──────────────────────────────────────────────
 function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, onGroupPrep, onMoveUp, onMoveDown, onReorder }: {
   station: string;
-  orders: Record<string, KDSOrder>;
+  orders: Record<string, Order>;
   stationLoad: number;
   onStartItem: (orderId: string, itemId: string) => void;
   onHoldItem: (orderId: string, itemId: string) => void;
@@ -65,7 +65,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
   const dragRef = useRef<{itemId: string; station: string} | null>(null);
 
   // Collect raw non-ready items
-  const rawItems: Array<{order: KDSOrder; item: KDSItem}> = [];
+  const rawItems: Array<{order: Order; item: Item}> = [];
   Object.values(orders).forEach(o => {
     if (o.status !== 'active') return;
     o.items.forEach(item => {
@@ -137,14 +137,14 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
   const isEmpty = queueEntries.length === 0;
 
   return (
-    <div style={{ background: 'var(--kds-linen)', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--kds-graphite)', borderBottom: 'var(--kds-b)', paddingBottom: 4, marginBottom: 2 }}>
+    <div style={{ background: 'var(--wk-linen)', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--wk-graphite)', borderBottom: 'var(--wk-b)', paddingBottom: 4, marginBottom: 2 }}>
         {station} Station
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 40, maxHeight: 340, overflowY: 'auto' }}>
         {isEmpty ? (
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--kds-graphite)', textAlign: 'center', padding: '12px 0', opacity: 0.5 }}>Queue is empty</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--wk-graphite)', textAlign: 'center', padding: '12px 0', opacity: 0.5 }}>Queue is empty</div>
         ) : queueEntries.map((entry, idx) => {
 
           // ── GROUP COOKING BOX (Items Cooking Together) ────────
@@ -159,7 +159,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                 style={{
                   padding: '8px 10px',
                   border: '2px solid #d97706',
-                  borderRadius: 'var(--kds-r)',
+                  borderRadius: 'var(--wk-r)',
                   background: 'rgba(217,119,6,0.08)',
                   display: 'flex', flexDirection: 'column', gap: 6,
                   boxShadow: '0 2px 6px rgba(217,119,6,0.12)'
@@ -175,20 +175,20 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--kds-ink)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--wk-ink)' }}>
                       {totalQty}× {name}
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--kds-graphite)', marginTop: 2, fontWeight: 600 }}>
-                      Orders: <span style={{ color: 'var(--kds-oxblood)' }}>{orderTags}</span>
+                    <div style={{ fontSize: 9, color: 'var(--wk-graphite)', marginTop: 2, fontWeight: 600 }}>
+                      Orders: <span style={{ color: 'var(--wk-oxblood)' }}>{orderTags}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 3 }}>
                     {items.map(x => (
                       <button
                         key={x.item.id}
-                        className="kds-interactive"
+                        className="wk-interactive"
                         onClick={e => { e.stopPropagation(); onHoldItem(x.order.id, x.item.id); }}
-                        style={{ padding: '3px 6px', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', fontSize: 8, fontWeight: 700, cursor: 'pointer', background: '#fff', color: 'var(--kds-oxblood)', fontFamily: 'var(--kds-font-ui)', textTransform: 'uppercase' }}
+                        style={{ padding: '3px 6px', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', fontSize: 8, fontWeight: 700, cursor: 'pointer', background: '#fff', color: 'var(--wk-oxblood)', fontFamily: 'var(--wk-font-ui)', textTransform: 'uppercase' }}
                         title={`Hold #${ordNum(x.order.id)}`}
                       >Hold #{ordNum(x.order.id)}</button>
                     ))}
@@ -205,7 +205,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
             return (
               <div
                 key={`group-prep-${name}`}
-                className="kds-queue-card kds-interactive"
+                className="wk-queue-card wk-interactive"
                 draggable={true}
                 data-item-id={primaryItem.id}
                 data-station={station}
@@ -216,7 +216,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                 }}
                 onDragEnd={e => {
                   (e.currentTarget as HTMLElement).classList.remove('dragging');
-                  document.querySelectorAll('.kds-queue-card').forEach(el => el.classList.remove('drag-over'));
+                  document.querySelectorAll('.wk-queue-card').forEach(el => el.classList.remove('drag-over'));
                 }}
                 onDragOver={e => {
                   e.preventDefault();
@@ -235,7 +235,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                   padding: '8px 10px',
                   border: '2px dashed #6d28d9',
                   borderLeft: '4px solid #6d28d9',
-                  borderRadius: 'var(--kds-r)',
+                  borderRadius: 'var(--wk-r)',
                   background: 'linear-gradient(135deg, rgba(109,40,217,0.08) 0%, rgba(248,228,125,0.2) 100%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
                   cursor: 'grab',
@@ -248,36 +248,36 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                     <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3, background: '#6d28d9', color: '#fff' }}>
                       ⚡ GROUP PREP UNIT
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--kds-ink)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--wk-ink)' }}>
                       {totalQty}× {name}
                     </span>
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--kds-graphite)', marginTop: 3, fontWeight: 600 }}>
-                    Orders: <span style={{ color: 'var(--kds-oxblood)' }}>{orderTags}</span>
+                  <div style={{ fontSize: 9, color: 'var(--wk-graphite)', marginTop: 3, fontWeight: 600 }}>
+                    Orders: <span style={{ color: 'var(--wk-oxblood)' }}>{orderTags}</span>
                   </div>
                 </div>
                 {/* Action buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   {idx > 0 && (
                     <button
-                      className="kds-interactive"
+                      className="wk-interactive"
                       onClick={e => { e.stopPropagation(); onMoveUp(items[0].order.id, primaryItem.id); }}
                       title="Move Up Unit"
-                      style={{ padding: '3px 5px', border: 'var(--kds-b)', borderRadius: 3, background: 'var(--kds-vellum)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--kds-ink)' }}
+                      style={{ padding: '3px 5px', border: 'var(--wk-b)', borderRadius: 3, background: 'var(--wk-vellum)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--wk-ink)' }}
                     >▲</button>
                   )}
                   {idx < queueEntries.length - 1 && (
                     <button
-                      className="kds-interactive"
+                      className="wk-interactive"
                       onClick={e => { e.stopPropagation(); onMoveDown(items[0].order.id, primaryItem.id); }}
                       title="Move Down Unit"
-                      style={{ padding: '3px 5px', border: 'var(--kds-b)', borderRadius: 3, background: 'var(--kds-vellum)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--kds-ink)' }}
+                      style={{ padding: '3px 5px', border: 'var(--wk-b)', borderRadius: 3, background: 'var(--wk-vellum)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--wk-ink)' }}
                     >▼</button>
                   )}
                   <button
-                    className="kds-interactive"
+                    className="wk-interactive"
                     onClick={e => { e.stopPropagation(); onGroupPrep(name, station); }}
-                    style={{ padding: '4px 8px', border: 'none', borderRadius: 'var(--kds-r)', fontSize: 9, fontWeight: 800, cursor: 'pointer', background: '#6d28d9', color: '#fff', fontFamily: 'var(--kds-font-ui)', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                    style={{ padding: '4px 8px', border: 'none', borderRadius: 'var(--wk-r)', fontSize: 9, fontWeight: 800, cursor: 'pointer', background: '#6d28d9', color: '#fff', fontFamily: 'var(--wk-font-ui)', textTransform: 'uppercase', letterSpacing: '0.05em' }}
                   >
                     Prep Together
                   </button>
@@ -301,12 +301,12 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
             ? 'rgba(217,119,6,0.1)'
             : isHold
             ? 'rgba(59,130,246,0.07)'
-            : 'var(--kds-vellum)';
+            : 'var(--wk-vellum)';
 
           return (
             <div
               key={item.id}
-              className="kds-queue-card kds-interactive"
+              className="wk-queue-card wk-interactive"
               draggable={true}
               data-item-id={item.id}
               data-station={station}
@@ -317,7 +317,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
               }}
               onDragEnd={e => {
                 (e.currentTarget as HTMLElement).classList.remove('dragging');
-                document.querySelectorAll('.kds-queue-card').forEach(el => el.classList.remove('drag-over'));
+                document.querySelectorAll('.wk-queue-card').forEach(el => el.classList.remove('drag-over'));
               }}
               onDragOver={e => {
                 e.preventDefault();
@@ -334,9 +334,9 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
               }}
               style={{
                 padding: '6px 8px',
-                border: 'var(--kds-b)',
+                border: 'var(--wk-b)',
                 ...(accentBorderLeft ? { borderLeft: accentBorderLeft } : {}),
-                borderRadius: 'var(--kds-r)',
+                borderRadius: 'var(--wk-r)',
                 background: bgTint,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 5,
                 cursor: 'grab',
@@ -346,20 +346,20 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--kds-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--wk-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.qty}× {item.name}
                   </span>
                   <span style={{
                     fontSize: 8, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
                     padding: '2px 5px', borderRadius: 3,
-                    background: isCooking ? '#d97706' : isHold ? '#3b82f6' : 'var(--kds-linen)',
-                    color: (isCooking || isHold) ? '#fff' : 'var(--kds-graphite)',
-                    border: (isCooking || isHold) ? 'none' : 'var(--kds-b)'
+                    background: isCooking ? '#d97706' : isHold ? '#3b82f6' : 'var(--wk-linen)',
+                    color: (isCooking || isHold) ? '#fff' : 'var(--wk-graphite)',
+                    border: (isCooking || isHold) ? 'none' : 'var(--wk-b)'
                   }}>
                     {isCooking ? '🔥 Cooking' : isHold ? '⏸ Hold' : '⏳ Queued'}
                   </span>
                 </div>
-                <div style={{ fontSize: 9, color: 'var(--kds-graphite)', marginTop: 1 }}>
+                <div style={{ fontSize: 9, color: 'var(--wk-graphite)', marginTop: 1 }}>
                   [{ordNum(order.id)}] {isCooking ? `Timer: ${fmtMSS(item.cookingElapsedSimSecs || 0)}` : `Due in: ${fmtMSS(order.slaSecsRemaining)}`}
                 </div>
               </div>
@@ -367,32 +367,32 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 {idx > 0 && (
                   <button
-                    className="kds-interactive"
+                    className="wk-interactive"
                     onClick={e => { e.stopPropagation(); onMoveUp(order.id, item.id); }}
                     title="Move Up"
-                    style={{ padding: '2px 4px', border: 'var(--kds-b)', borderRadius: 3, background: 'var(--kds-linen)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--kds-ink)' }}
+                    style={{ padding: '2px 4px', border: 'var(--wk-b)', borderRadius: 3, background: 'var(--wk-linen)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--wk-ink)' }}
                   >▲</button>
                 )}
                 {idx < queueEntries.length - 1 && (
                   <button
-                    className="kds-interactive"
+                    className="wk-interactive"
                     onClick={e => { e.stopPropagation(); onMoveDown(order.id, item.id); }}
                     title="Move Down"
-                    style={{ padding: '2px 4px', border: 'var(--kds-b)', borderRadius: 3, background: 'var(--kds-linen)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--kds-ink)' }}
+                    style={{ padding: '2px 4px', border: 'var(--wk-b)', borderRadius: 3, background: 'var(--wk-linen)', fontSize: 9, fontWeight: 700, cursor: 'pointer', color: 'var(--wk-ink)' }}
                   >▼</button>
                 )}
                 {!isCooking && (
                   <button
-                    className="kds-interactive"
+                    className="wk-interactive"
                     onClick={e => { e.stopPropagation(); onStartItem(order.id, item.id); }}
-                    style={{ padding: '3px 6px', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', fontSize: 9, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: 'var(--kds-oxblood)', fontFamily: 'var(--kds-font-ui)', textTransform: 'uppercase' }}
+                    style={{ padding: '3px 6px', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', fontSize: 9, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: 'var(--wk-oxblood)', fontFamily: 'var(--wk-font-ui)', textTransform: 'uppercase' }}
                   >Prep</button>
                 )}
                 {!isHold && (
                   <button
-                    className={`kds-interactive ${isOver ? 'kds-suggest-hold' : ''}`}
+                    className={`wk-interactive ${isOver ? 'wk-suggest-hold' : ''}`}
                     onClick={e => { e.stopPropagation(); onHoldItem(order.id, item.id); }}
-                    style={{ padding: '3px 6px', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', fontSize: 9, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: 'var(--kds-oxblood)', fontFamily: 'var(--kds-font-ui)', textTransform: 'uppercase' }}
+                    style={{ padding: '3px 6px', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', fontSize: 9, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: 'var(--wk-oxblood)', fontFamily: 'var(--wk-font-ui)', textTransform: 'uppercase' }}
                   >Hold</button>
                 )}
               </div>

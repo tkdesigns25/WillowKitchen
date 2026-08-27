@@ -2,7 +2,7 @@ export type ItemState = 'Queued' | 'Cooking' | 'Hold' | 'Ready';
 export type OrderStatus = 'new' | 'active' | 'packed' | 'completed' | 'rejected';
 export type RiderStatus = 'transit' | 'arrived';
 
-export interface KDSItem {
+export interface Item {
   id: string;
   name: string;
   qty: number;
@@ -14,12 +14,12 @@ export interface KDSItem {
   modifier: string;
 }
 
-export interface KDSOrder {
+export interface Order {
   id: string;
   brand: string;
   source: string;
   customer: string;
-  items: KDSItem[];
+  items: Item[];
   notes: string;
   status: OrderStatus;
   arrivedAt: number;
@@ -40,7 +40,7 @@ export interface KDSOrder {
   riderCoWaitSecs?: number;
 }
 
-export interface KDSRider {
+export interface Rider {
   id: string;
   name: string;
   platform: string;
@@ -78,11 +78,11 @@ export interface AnalyticsData {
   onTimeCount: number;
 }
 
-export interface KDSState {
-  orders: Record<string, KDSOrder>;
-  rejected: KDSOrder[];
-  completed: KDSOrder[];
-  riders: KDSRider[];
+export interface AppState {
+  orders: Record<string, Order>;
+  rejected: Order[];
+  completed: Order[];
+  riders: Rider[];
   orderCounter: number;
   soundEnabled: boolean;
   isOpen: boolean;

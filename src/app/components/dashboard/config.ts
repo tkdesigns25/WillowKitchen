@@ -1,4 +1,4 @@
-import type { KDSItem, KDSOrder } from './types';
+import type { Item, Order, AppState } from './types';
 
 export const CFG = {
   AUTO_CANCEL_SECS:      150,
@@ -114,7 +114,7 @@ export function randomColor()    { return COLORS[Math.floor(Math.random() * COLO
 export function pickCustomer()   { return CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)]; }
 export function pickNote()       { return NOTES_POOL[Math.floor(Math.random() * NOTES_POOL.length)]; }
 
-export function makeItem(name: string, qty: number, modifier = ''): KDSItem {
+export function makeItem(name: string, qty: number, modifier = ''): Item {
   return {
     id:                    makeId(),
     name,
@@ -130,8 +130,8 @@ export function makeItem(name: string, qty: number, modifier = ''): KDSItem {
 
 export function makeOrder(params: {
   id: string; brand: string; source: string; customer: string;
-  items: KDSItem[]; notes?: string;
-}): KDSOrder {
+  items: Item[]; notes?: string;
+}): Order {
   return {
     id:                 params.id,
     brand:              params.brand,
@@ -164,14 +164,14 @@ export function safeStorageSet(key: string, value: string): void {
   try { localStorage.setItem(key, value); } catch { /* sandboxed */ }
 }
 
-export function createInitialState(): KDSState {
+export function createInitialState(): AppState {
   return {
     orders:            {},
     rejected:          [],
     completed:         [],
     riders:            [],
     orderCounter:      100,
-    soundEnabled:      safeStorage('kds-sound') !== 'false',
+    soundEnabled:      safeStorage('wk-sound') !== 'false',
     isOpen:            false,
     autoAccept:        false,
     canceledStock:     [],

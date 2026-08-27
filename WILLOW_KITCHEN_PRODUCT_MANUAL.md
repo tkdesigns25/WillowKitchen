@@ -1,13 +1,13 @@
-# Willow Kitchen KDS — Product Manual & Technical Specification
+# Willow Kitchen display — Product Manual & Technical Specification
 **Current Version**: 0.0.1 (Production Release)  
-**System Type**: Multi-Brand Real-Time Kitchen Display System (KDS)  
+**System Type**: Multi-Brand Real-Time cloud kitchen order display and management system  
 **Target Architecture**: Cloud Kitchens & High-Throughput Delivery Hubs  
 
 ---
 
 ## 📑 Executive Summary
 
-**Willow Kitchen** is a state-of-the-art Kitchen Display System engineered specifically for multi-brand cloud kitchens. It unifies order streams from online delivery aggregators (Swiggy, Zomato) and direct ordering channels into a synchronized, 4-column operational workflow.
+**Willow Kitchen** is a state-of-the-art order management display engineered specifically for multi-brand cloud kitchens. It unifies order streams from online delivery aggregators (Swiggy, Zomato) and direct ordering channels into a synchronized, 4-column operational workflow.
 
 ### Key Capabilities:
 - **Multi-Brand Routing**: Supports distinct virtual brands running under one physical kitchen roof.
@@ -21,12 +21,12 @@
 ## 🛠️ Technology Stack & System Design
 
 - **Core Framework**: React with TypeScript & Vite bundler.
-- **State Engine**: Centralized reactive state (`KDSState`) driven by a stable 1-second simulation clock advancing 3 simulated seconds per real second (~40% balanced operational speed).
+- **State Engine**: Centralized reactive state (`AppState`) driven by a stable 1-second simulation clock advancing 3 simulated seconds per real second (~40% balanced operational speed).
 - **Design System Tokens**:
-  - `var(--kds-vellum)` (`#fcf8f2`) — Warm parchment background
-  - `var(--kds-oxblood)` (`#370808`) — Deep primary brand accents
-  - `var(--kds-linen)` (`#f4ebd7`) — High-contrast container fills
-  - `var(--kds-ink)` (`#1c1917`) — Crisp legible typography
+  - `var(--wk-vellum)` (`#fcf8f2`) — Warm parchment background
+  - `var(--wk-oxblood)` (`#370808`) — Deep primary brand accents
+  - `var(--wk-linen)` (`#f4ebd7`) — High-contrast container fills
+  - `var(--wk-ink)` (`#1c1917`) — Crisp legible typography
 
 ---
 

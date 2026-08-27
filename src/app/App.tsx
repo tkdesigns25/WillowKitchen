@@ -1,5 +1,5 @@
-import { KDSApp } from './components/kds/KDSApp';
+import { Dashboard } from './components/dashboard/Dashboard';
 
 export default function App() {
-  return <KDSApp />;
+  return <Dashboard />;
 }

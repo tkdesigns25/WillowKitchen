@@ -1,5 +1,5 @@
 import React from 'react';
-import { GhostBtn } from './KDSApp';
+import { GhostBtn } from './Dashboard';
 
 interface HeaderProps {
   isOpen: boolean; autoAccept: boolean; soundEnabled: boolean;
@@ -13,7 +13,7 @@ interface HeaderProps {
 
 const STATIONS = ['Hot', 'Grill', 'Assembly'] as const;
 
-function WillowLogo({ size = 26, color = 'var(--kds-oxblood)' }: { size?: number; color?: string }) {
+function WillowLogo({ size = 26, color = 'var(--wk-oxblood)' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
       <path d="M 12 86 C 38 74 62 74 88 86 C 62 80 38 80 12 86 Z" fill={color} stroke="none" />
@@ -30,33 +30,33 @@ function WillowLogo({ size = 26, color = 'var(--kds-oxblood)' }: { size?: number
   );
 }
 
-export function KDSHeader(props: HeaderProps) {
+export function DashboardHeader(props: HeaderProps) {
   const { isOpen, autoAccept, soundEnabled, cookingCount, waitingCount, doneCount, stationLoads, clock } = props;
 
   return (
     <header style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-      height: 'var(--kds-hh)',
-      background: 'var(--kds-vellum)', borderBottom: 'var(--kds-b)',
+      height: 'var(--wk-hh)',
+      background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)',
       display: 'flex', alignItems: 'center',
       padding: '0 12px', gap: 10,
     }}>
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: 'var(--kds-b)', flexShrink: 0 }}>
-        <WillowLogo size={24} color="var(--kds-oxblood)" />
-        <span style={{ fontFamily: 'var(--kds-font-ui)', fontWeight: 900, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--kds-oxblood)', whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: 'var(--wk-b)', flexShrink: 0 }}>
+        <WillowLogo size={24} color="var(--wk-oxblood)" />
+        <span style={{ fontFamily: 'var(--wk-font-ui)', fontWeight: 900, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wk-oxblood)', whiteSpace: 'nowrap' }}>
           Willow Kitchen
         </span>
       </div>
 
       {/* Open / Close */}
-      <div style={{ display: 'flex', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ display: 'flex', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', overflow: 'hidden', flexShrink: 0 }}>
         <OcBtn active={isOpen ? 'open' : null} onClick={props.onOpen}>✓ Open</OcBtn>
         <OcBtn active={!isOpen ? 'close' : null} onClick={props.onClose}>⛔ Close</OcBtn>
       </div>
 
       {/* Auto-Accept */}
-      <div style={{ display: 'flex', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', overflow: 'hidden', flexShrink: 0, marginLeft: 4 }}>
+      <div style={{ display: 'flex', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', overflow: 'hidden', flexShrink: 0, marginLeft: 4 }}>
         <OcBtn active={autoAccept ? 'open' : null} onClick={props.onAutoAcceptOn}>Auto-Accept: ON</OcBtn>
         <OcBtn active={!autoAccept ? 'close' : null} onClick={props.onAutoAcceptOff}>Auto-Accept: OFF</OcBtn>
       </div>
@@ -69,22 +69,22 @@ export function KDSHeader(props: HeaderProps) {
       </div>
 
       {/* Station load — segments bar + count number below */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px', borderLeft: 'var(--kds-b)', borderRight: 'var(--kds-b)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px', borderLeft: 'var(--wk-b)', borderRight: 'var(--wk-b)', flexShrink: 0 }}>
         {STATIONS.map(stn => {
           const load  = stationLoads[stn] || 0;
           const count = Math.round(load / 10); // 0–10 items
           const isFull = count >= 10;
           const isWarn = count >= 7;
-          const numColor = isFull ? 'var(--kds-red)' : isWarn ? '#b07800' : 'var(--kds-oxblood)';
+          const numColor = isFull ? 'var(--wk-red)' : isWarn ? '#b07800' : 'var(--wk-oxblood)';
           return (
             <div key={stn} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--kds-graphite)' }}>
+              <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>
                 {stn}
               </span>
               {/* Segment bar */}
-              <div className={isFull ? 'kds-sl-track overloaded' : 'kds-sl-track'} style={{ display: 'flex', gap: 2, width: 68, height: 8 }}>
+              <div className={isFull ? 'wk-sl-track overloaded' : 'wk-sl-track'} style={{ display: 'flex', gap: 2, width: 68, height: 8 }}>
                 {Array.from({ length: 10 }, (_, i) => (
-                  <div key={i} className={`kds-sl-segment ${i < count ? 'filled' : ''}`} />
+                  <div key={i} className={`wk-sl-segment ${i < count ? 'filled' : ''}`} />
                 ))}
               </div>
               {/* Count below bar */}
@@ -98,7 +98,7 @@ export function KDSHeader(props: HeaderProps) {
 
       {/* Right controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--kds-graphite)', letterSpacing: '0.04em' }}>{clock}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--wk-graphite)', letterSpacing: '0.04em' }}>{clock}</span>
         <IconBtn title={soundEnabled ? 'Turn sounds off' : 'Turn sounds on'} active={soundEnabled} onClick={props.onToggleSound}>
           {soundEnabled ? '🔔' : '🔕'}
         </IconBtn>
@@ -111,13 +111,13 @@ export function KDSHeader(props: HeaderProps) {
 }
 
 function OcBtn({ children, active, onClick }: { children: React.ReactNode; active: 'open' | 'close' | null; onClick: () => void }) {
-  const bg = active === 'open' ? 'var(--kds-oxblood)' : active === 'close' ? 'var(--kds-gold)' : 'var(--kds-vellum)';
-  const color = active === 'open' ? 'var(--kds-vellum)' : active === 'close' ? 'var(--kds-ink)' : 'var(--kds-graphite)';
+  const bg = active === 'open' ? 'var(--wk-oxblood)' : active === 'close' ? 'var(--wk-gold)' : 'var(--wk-vellum)';
+  const color = active === 'open' ? 'var(--wk-vellum)' : active === 'close' ? 'var(--wk-ink)' : 'var(--wk-graphite)';
   return (
     <button
-      className="kds-interactive"
+      className="wk-interactive"
       onClick={onClick}
-      style={{ padding: '6px 12px', border: 'none', background: bg, color, fontFamily: 'var(--kds-font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', cursor: 'pointer' }}
+      style={{ padding: '6px 12px', border: 'none', background: bg, color, fontFamily: 'var(--wk-font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', cursor: 'pointer' }}
     >
       {children}
     </button>
@@ -126,9 +126,9 @@ function OcBtn({ children, active, onClick }: { children: React.ReactNode; activ
 
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, padding: '3px 8px', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', background: 'var(--kds-linen)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--kds-graphite)' }}>{label}</span>
-      <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--kds-ink)', lineHeight: 1 }}>{value}</span>
+    <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, padding: '3px 8px', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', background: 'var(--wk-linen)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>{label}</span>
+      <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--wk-ink)', lineHeight: 1 }}>{value}</span>
     </div>
   );
 }
@@ -136,10 +136,10 @@ function StatPill({ label, value }: { label: string; value: number }) {
 function IconBtn({ children, title, active, onClick }: { children: React.ReactNode; title: string; active: boolean; onClick: () => void }) {
   return (
     <button
-      className="kds-interactive"
+      className="wk-interactive"
       title={title}
       onClick={onClick}
-      style={{ width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'var(--kds-linen)' : 'var(--kds-vellum)', border: 'var(--kds-b)', borderRadius: 'var(--kds-r)', cursor: 'pointer', fontSize: 15, flexShrink: 0 }}
+      style={{ width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'var(--wk-linen)' : 'var(--wk-vellum)', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', cursor: 'pointer', fontSize: 15, flexShrink: 0 }}
     >
       {children}
     </button>
