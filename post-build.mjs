@@ -1,23 +1,32 @@
 // post-build.mjs
-// Runs after `vite build` to create a standalone.html for local file:// access.
+// Runs after `vite build`.
+// 
+// 1. Prepares dist/ for Vercel / GitHub Pages:
+//    Renames dist/index.source.html -> dist/index.html
 //
-// Rules:
-// - NEVER touches root index.html (Vite needs it as its source template)
-// - NEVER modifies dist/ (Vercel and gh-pages serve from dist/ — leave it clean)
-// - Generates standalone.html by inlining all JS + CSS into one self-contained file
-//   so it can be opened by double-clicking with no server, no assets/ folder needed.
+// 2. Prepares standalone inlined HTML files (index.html and standalone.html)
+//    for direct local file:// opening with ZERO server or network dependencies.
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const distDir = 'dist';
 const distAssetsDir = join(distDir, 'assets');
 
-const html = readFileSync(join(distDir, 'index.html'), 'utf8');
+// 1. Ensure dist/index.html exists for Vercel / hosting
+const distSourceHtmlPath = join(distDir, 'index.source.html');
+const distHtmlPath = join(distDir, 'index.html');
+
+if (existsSync(distSourceHtmlPath)) {
+  copyFileSync(distSourceHtmlPath, distHtmlPath);
+  console.log('✓ Created dist/index.html for Vercel / web hosting');
+}
+
+const distHtml = readFileSync(distHtmlPath, 'utf8');
 
 // Find JS and CSS asset filenames from the built HTML
-const jsMatch = html.match(/src="\.\/assets\/(index-[^"]+\.js)"/);
-const cssMatch = html.match(/href="\.\/assets\/(index-[^"]+\.css)"/);
+const jsMatch = distHtml.match(/src="\.\/assets\/([^"]+\.js)"/);
+const cssMatch = distHtml.match(/href="\.\/assets\/([^"]+\.css)"/);
 
 if (!jsMatch) {
   console.error('❌ Could not find JS asset in dist/index.html');
@@ -27,28 +36,38 @@ if (!jsMatch) {
 const jsContent = readFileSync(join(distAssetsDir, jsMatch[1]), 'utf8');
 const cssContent = cssMatch ? readFileSync(join(distAssetsDir, cssMatch[1]), 'utf8') : '';
 
-// Build standalone HTML — inline everything, no external deps, no type=module
-let standalone = html;
+// 2. Build the self-contained, standalone single-file HTML
+// Clean template based on distHtml
+let standalone = distHtml;
 
-// Replace <link rel=stylesheet ...> with inline <style>
+// Replace CSS <link> with inline <style> (use function replacer to avoid pattern substitution)
 if (cssMatch) {
   standalone = standalone.replace(
     /<link rel="stylesheet"[^>]+>/,
-    `<style>\n${cssContent}\n</style>`
+    () => `<style>\n${cssContent}\n</style>`
   );
 }
 
-// Replace <script type="module" ...></script> with inline <script defer>
-standalone = standalone.replace(
-  /<script type="module"[^>]+><\/script>/,
-  `<script defer>\n${jsContent}\n</script>`
-);
+// Remove module script from <head>
+standalone = standalone.replace(/<script type="module"[^>]+><\/script>/, '');
 
-// Strip crossorigin attributes
+// Strip any remaining crossorigin attributes
 standalone = standalone.replace(/ crossorigin/g, '');
 
+// CRITICAL FOR BROWSER RUNTIME:
+// 1) Escape any </script> sequences inside JS string literals so browser HTML parser doesn't close script early
+// 2) Place <script> at the bottom of <body> AFTER <div id="root"></div> so document.getElementById('root') is NOT null!
+const safeJsContent = jsContent.replace(/<\/script>/gi, '<\\/script>');
+standalone = standalone.replace(
+  '</body>',
+  () => `<script>\n${safeJsContent}\n</script>\n</body>`
+);
+
+// Save as both index.html (so opening folder or index.html works) AND standalone.html
+writeFileSync('index.html', standalone, 'utf8');
 writeFileSync('standalone.html', standalone, 'utf8');
 
 const kb = Math.round(standalone.length / 1024);
-console.log(`✓ Generated standalone.html (${kb} KB) — open by double-clicking, no server needed`);
-console.log('✓ dist/ and root index.html left untouched');
+console.log(`✓ Generated self-contained index.html & standalone.html (${kb} KB)`);
+console.log('✓ Script placed after <div id="root"></div> for flawless local execution');
+console.log('✓ Ready for direct local double-clicking AND web deployment!');
