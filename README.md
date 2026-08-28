@@ -4,13 +4,6 @@ A high-density, real-time multi-brand cloud kitchen order management dashboard
 designed for rapid pass-through optimization, automated logistics coordination,
 and food waste reduction.
 
-┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐
-│  COL 1: NEW     │  COL 2: COOKING │  COL 3: STATIONS│  COL 4: HANDOVER│
-│  • Auto-accept  │  • SLA priority │  • Hot Station  │  • Packed Orders│
-│  • Channel src  │  • Live progress│  • Grill Station│  • Riders (2-col│
-│  • Accept/Reject│  • Auto-handover│  • Assembly Stn │  • Up for Grabs │
-└─────────────────┴─────────────────┴─────────────────┴─────────────────┘
-
 📖 Project Overview
 
 Willow Kitchen is an operational dashboard built specifically for multi-brand
