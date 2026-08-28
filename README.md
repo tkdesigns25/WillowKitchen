@@ -1,7 +1,7 @@
 
   # Enhance Cloud Kitchen Manager Experience
 
-  This is a code bundle for Enhance Cloud Kitchen Manager Experience. The original project is available at https://www.figma.com/design/Z5Htcf8kLzrGUB0vMGnOG5/Enhance-Cloud-Kitchen-Manager-Experience.
+  This is a code bundle for Enhance Cloud Kitchen Manager Experience. The original project is available [Here](https://willow-kitchen.vercel.app/).
 
   ## Running the code
 
