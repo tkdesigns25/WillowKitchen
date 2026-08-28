@@ -81,27 +81,6 @@ reflective kitchen lights.
   - Acoustic Engine: Synthesized Web Audio API tones (clean sine-wave sweeps)
     for zero-latency alert delivery without external asset dependency.
 
-📁 Repository Structure
-
-├── public/
-├── src/
-│   ├── app/
-│   │   └── components/
-│   │       └── dashboard/
-│   │           ├── Dashboard.tsx        # Audio engine, state loops, acceptance logic
-│   │           ├── Header.tsx           # Widescreen navigation & load tracking
-│   │           ├── Column3.tsx          # Station Queues & priority sequencing
-│   │           ├── Column4.tsx          # Packed orders, riders, & Up for Grabs pool
-│   │           ├── NewOrderCard.tsx     # Inbound cards & auto-cancel triggers
-│   │           ├── ActiveOrderCard.tsx  # SLA count-downs & item checklists
-│   │           ├── Modals.tsx           # OOS toggles, Stop Apps, Analytics
-│   │           └── config.ts            # Brand menus & initial parameters
-│   └── styles/
-│       └── globals.css                  # Color tokens, breakpoints, typography
-├── package.json
-├── post-build.mjs                       # Standalone single-file HTML bundler script
-└── vite.config.ts
-
 Thank you for reading this!!!
 
 The original project is available [Here](https://willow-kitchen.vercel.app/).
