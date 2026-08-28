@@ -113,7 +113,7 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
       ))}
       {Object.entries(prepTogetherHits).map(([name, qty]) => (
         <div key={name} style={{ padding: '5px 12px', background: 'rgba(30,107,58,0.08)', borderBottom: 'var(--wk-b)', fontSize: 10, fontWeight: 700, color: 'var(--wk-green)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', background: 'var(--wk-green)', color: '#fff', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>⚡ Prep Together</span>
+          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', background: 'var(--wk-green)', color: '#fff', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Prep Together</span>
           <span>Opportunity: {qty}× <strong>{name}</strong> in kitchen queue</span>
         </div>
       ))}
@@ -157,7 +157,7 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
                         fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
                         padding: '2px 5px', borderRadius: 3,
                         background: 'var(--wk-green)', color: '#fff',
-                      }}>⚡ Prep Together</span>
+                      }}>Prep Together</span>
                     )}
                     {poolMatch && (
                       <span style={{

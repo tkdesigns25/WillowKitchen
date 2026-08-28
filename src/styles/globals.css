@@ -9,6 +9,7 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 /* ── LIGHT MODE TOKENS ─────────────────────────────────────── */
@@ -30,7 +31,8 @@ html, body {
   --wk-r: 5px;
   --wk-b: 1px solid var(--wk-border);
   --wk-hh: 56px;
-  --wk-ch: 38px;
+  --wk-bh: 44px;
+  --wk-ch: 42px;
 }
 
 /* ── DARK MODE OVERRIDES ────────────────────────────────────── */
@@ -169,4 +171,158 @@ html, body {
   font-family: 'Libre Caslon Text', serif;
   font-weight: 400;
   line-height: 1;
+}
+
+/* ── RESPONSIVE HEADER STYLING ──────────────────────────────── */
+.wk-header-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  height: var(--wk-hh);
+  background: var(--wk-vellum);
+  border-bottom: var(--wk-b);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.wk-header-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.wk-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  border-right: var(--wk-b);
+  flex-shrink: 0;
+}
+
+.wk-header-left-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.wk-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.wk-header-station-loads {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  border-left: var(--wk-b);
+  border-right: var(--wk-b);
+  flex-shrink: 0;
+}
+
+.wk-header-station-loads .wk-sl-track {
+  width: 60px;
+  height: 8px;
+}
+
+.wk-header-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── TABLET RESPONSIVENESS (<= 1240px) ──────────────────────── */
+@media (max-width: 1240px) {
+  .wk-header-bar {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .wk-header-brand {
+    padding-right: 8px;
+    gap: 6px;
+  }
+  .wk-header-left-controls {
+    gap: 5px;
+  }
+  .wk-header-station-loads {
+    gap: 8px;
+    padding: 0 6px;
+  }
+  .wk-header-station-loads .wk-sl-track {
+    width: 44px;
+    height: 7px;
+  }
+  .wk-header-right-controls {
+    gap: 4px;
+  }
+  .wk-ghost-btn-resp {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+  }
+  .wk-stat-pill-resp {
+    padding: 2px 6px !important;
+  }
+}
+
+/* ── TABLET PORTRAIT / SMALL SCREEN (<= 960px) ──────────────── */
+@media (max-width: 960px) {
+  .wk-header-bar {
+    padding: 0 6px;
+    gap: 4px;
+  }
+  .wk-header-station-loads .wk-sl-track {
+    width: 32px;
+  }
+  .wk-ghost-btn-resp {
+    padding: 4px 6px !important;
+    font-size: 9.5px !important;
+  }
+  .wk-brand-title {
+    font-size: 11px !important;
+    letter-spacing: 0.08em !important;
+  }
+  .wk-clock-display {
+    width: 72px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ── RESPONSIVE KANBAN GRID ─────────────────────────────────── */
+.wk-main-grid {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 18% 32% 30% 20%;
+  transition: top 0.2s;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1199px) {
+  .wk-main-grid {
+    grid-template-columns: 240px minmax(340px, 1.2fr) minmax(300px, 1fr) 260px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 860px) {
+  .wk-main-grid {
+    grid-template-columns: 220px minmax(300px, 1fr) minmax(280px, 1fr) 240px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
 }

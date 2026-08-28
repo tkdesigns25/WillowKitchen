@@ -34,42 +34,39 @@ export function DashboardHeader(props: HeaderProps) {
   const { isOpen, autoAccept, soundEnabled, cookingCount, waitingCount, doneCount, stationLoads, clock } = props;
 
   return (
-    <header style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-      height: 'var(--wk-hh)',
-      background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)',
-      display: 'flex', alignItems: 'center',
-      padding: '0 12px', gap: 10,
-    }}>
+    <header className="wk-header-bar">
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: 'var(--wk-b)', flexShrink: 0 }}>
+      <div className="wk-header-brand">
         <WillowLogo size={24} color="var(--wk-oxblood)" />
-        <span style={{ fontFamily: 'var(--wk-font-ui)', fontWeight: 900, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wk-oxblood)', whiteSpace: 'nowrap' }}>
+        <span className="wk-brand-title" style={{ fontFamily: 'var(--wk-font-ui)', fontWeight: 900, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wk-oxblood)', whiteSpace: 'nowrap' }}>
           Willow Kitchen
         </span>
       </div>
 
-      {/* Open / Close */}
-      <div style={{ display: 'flex', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', overflow: 'hidden', flexShrink: 0 }}>
-        <OcBtn active={isOpen ? 'open' : null} onClick={props.onOpen}>✓ Open</OcBtn>
-        <OcBtn active={!isOpen ? 'close' : null} onClick={props.onClose}>⛔ Close</OcBtn>
-      </div>
+      {/* Left controls: Open/Close & Auto-Accept switches */}
+      <div className="wk-header-left-controls">
+        {/* Open / Close switch */}
+        <div style={{ display: 'flex', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', overflow: 'hidden', flexShrink: 0 }}>
+          <OcBtn active={isOpen ? 'open' : null} onClick={props.onOpen}>✓ Open</OcBtn>
+          <OcBtn active={!isOpen ? 'close' : null} onClick={props.onClose}>⛔ Close</OcBtn>
+        </div>
 
-      {/* Auto-Accept */}
-      <div style={{ display: 'flex', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', overflow: 'hidden', flexShrink: 0, marginLeft: 4 }}>
-        <OcBtn active={autoAccept ? 'open' : null} onClick={props.onAutoAcceptOn}>Auto-Accept: ON</OcBtn>
-        <OcBtn active={!autoAccept ? 'close' : null} onClick={props.onAutoAcceptOff}>Auto-Accept: OFF</OcBtn>
+        {/* Auto-Accept switch */}
+        <div style={{ display: 'flex', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', overflow: 'hidden', flexShrink: 0 }}>
+          <OcBtn active={autoAccept ? 'open' : null} onClick={props.onAutoAcceptOn}>Auto-Accept: ON</OcBtn>
+          <OcBtn active={!autoAccept ? 'close' : null} onClick={props.onAutoAcceptOff}>Auto-Accept: OFF</OcBtn>
+        </div>
       </div>
 
       {/* Live stats */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+      <div className="wk-header-stats">
         <StatPill label="Cooking" value={cookingCount} />
         <StatPill label="Waiting" value={waitingCount} />
         <StatPill label="Done Today" value={doneCount} />
       </div>
 
-      {/* Station load — segments bar + count number below */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px', borderLeft: 'var(--wk-b)', borderRight: 'var(--wk-b)', flexShrink: 0 }}>
+      {/* Station load tracks */}
+      <div className="wk-header-station-loads">
         {STATIONS.map(stn => {
           const load  = stationLoads[stn] || 0;
           const count = Math.round(load / 10); // 0–10 items
@@ -82,13 +79,13 @@ export function DashboardHeader(props: HeaderProps) {
                 {stn}
               </span>
               {/* Segment bar */}
-              <div className={isFull ? 'wk-sl-track overloaded' : 'wk-sl-track'} style={{ display: 'flex', gap: 2, width: 68, height: 8 }}>
+              <div className={isFull ? 'wk-sl-track overloaded' : 'wk-sl-track'} style={{ display: 'flex', gap: 2 }}>
                 {Array.from({ length: 10 }, (_, i) => (
                   <div key={i} className={`wk-sl-segment ${i < count ? 'filled' : ''}`} />
                 ))}
               </div>
               {/* Count below bar */}
-              <span style={{ fontSize: 9, fontWeight: 900, lineHeight: 1, color: numColor, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 9, fontWeight: 900, lineHeight: 1, color: numColor, fontVariantNumeric: 'tabular-nums', width: 28, textAlign: 'center', display: 'inline-block' }}>
                 {count}/10
               </span>
             </div>
@@ -96,15 +93,28 @@ export function DashboardHeader(props: HeaderProps) {
         })}
       </div>
 
-      {/* Right controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--wk-graphite)', letterSpacing: '0.04em' }}>{clock}</span>
+      {/* Right controls: Restored clean previous buttons (Out of Stock, ⏸ Stop Apps, + New Order, 🔔 Bell) */}
+      <div className="wk-header-right-controls">
+        <span className="wk-clock-display" style={{
+          fontSize: 12,
+          fontWeight: 700,
+          color: 'var(--wk-graphite)',
+          letterSpacing: '0.02em',
+          fontVariantNumeric: 'tabular-nums',
+          width: 82,
+          textAlign: 'center',
+          display: 'inline-block',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          {clock}
+        </span>
         <IconBtn title={soundEnabled ? 'Turn sounds off' : 'Turn sounds on'} active={soundEnabled} onClick={props.onToggleSound}>
           {soundEnabled ? '🔔' : '🔕'}
         </IconBtn>
-        <GhostBtn onClick={props.onOpenNewOrder}>+ New Order</GhostBtn>
-        <GhostBtn onClick={props.onOpenPause}>⏸ Stop Apps</GhostBtn>
-        <GhostBtn onClick={props.onOpenMenu}>Out of Stock</GhostBtn>
+        <GhostBtn className="wk-ghost-btn-resp" onClick={props.onOpenMenu}>Out of Stock</GhostBtn>
+        <GhostBtn className="wk-ghost-btn-resp" onClick={props.onOpenPause}>⏸ Stop Apps</GhostBtn>
+        <GhostBtn className="wk-ghost-btn-resp" onClick={props.onOpenNewOrder}>+ New Order</GhostBtn>
       </div>
     </header>
   );
@@ -117,7 +127,7 @@ function OcBtn({ children, active, onClick }: { children: React.ReactNode; activ
     <button
       className="wk-interactive"
       onClick={onClick}
-      style={{ padding: '6px 12px', border: 'none', background: bg, color, fontFamily: 'var(--wk-font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', cursor: 'pointer' }}
+      style={{ padding: '6px 11px', border: 'none', background: bg, color, fontFamily: 'var(--wk-font-ui)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
     >
       {children}
     </button>
@@ -126,9 +136,9 @@ function OcBtn({ children, active, onClick }: { children: React.ReactNode; activ
 
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, padding: '3px 8px', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', background: 'var(--wk-linen)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+    <div className="wk-stat-pill-resp" style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, padding: '3px 8px', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', background: 'var(--wk-linen)', whiteSpace: 'nowrap', flexShrink: 0 }}>
       <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>{label}</span>
-      <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--wk-ink)', lineHeight: 1 }}>{value}</span>
+      <span style={{ fontSize: 14, fontWeight: 900, color: 'var(--wk-ink)', lineHeight: 1, minWidth: 14, textAlign: 'center', display: 'inline-block', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   );
 }
@@ -139,7 +149,7 @@ function IconBtn({ children, title, active, onClick }: { children: React.ReactNo
       className="wk-interactive"
       title={title}
       onClick={onClick}
-      style={{ width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'var(--wk-linen)' : 'var(--wk-vellum)', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', cursor: 'pointer', fontSize: 15, flexShrink: 0 }}
+      style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'var(--wk-linen)' : 'var(--wk-vellum)', border: 'var(--wk-b)', borderRadius: 'var(--wk-r)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}
     >
       {children}
     </button>

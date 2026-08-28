@@ -184,7 +184,7 @@ function PauseModal({ onClosePause, onApplyPause }: ModalsProps) {
   const platRows: Array<{ key: keyof typeof channels; label: string }> = [
     { key: 'Swiggy',    label: 'Swiggy' },
     { key: 'Zomato',    label: 'Zomato' },
-    { key: 'DirectApp', label: 'Own App' },
+    { key: 'DirectApp', label: 'App' },
   ];
 
   const durations = [
@@ -499,7 +499,7 @@ function AnalyticsModal({ data, onCloseAnalytics }: ModalsProps & { data: Analyt
 
   const stats = [
     { val: `${data.onTimeRate}%`, lbl: 'Orders on time',       sub: `${data.onTimeCount} of ${data.totalCompleted} packed within promised time` },
-    { val: data.avgVel,          lbl: 'Avg. minutes per order', sub: 'From accepting to handing over' },
+    { val: data.avgVel,          lbl: 'Average time per order', sub: 'From accepting to handing over' },
     { val: data.peakStation?.[0] ?? '—', lbl: 'Busiest station this rush', sub: `Hit ${Math.round(data.peakStation?.[1] ?? 0)}% max load` },
     { val: data.coldLog,          lbl: 'Orders that sat too long', sub: 'Packed but waited too long for rider' },
     { val: data.rejectedCount,    lbl: 'Orders turned away',    sub: 'Rejected or cancelled this rush' },
@@ -525,7 +525,7 @@ function AnalyticsModal({ data, onCloseAnalytics }: ModalsProps & { data: Analyt
         </div>
       </ModalBody>
       <ModalFoot>
-        <div />
+        <GhostBtn onClick={() => {}}>📥 Download Summary</GhostBtn>
         <OxBtn onClick={onCloseAnalytics}>Close &amp; Start Fresh</OxBtn>
       </ModalFoot>
     </ModalShell>

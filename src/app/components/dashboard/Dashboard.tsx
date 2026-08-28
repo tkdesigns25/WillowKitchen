@@ -122,11 +122,8 @@ function seedPreviewState(state: AppState) {
     { id: 'RD-001', name: 'Rajan K.', platform: 'Swiggy', orderId: null, tag: 'Tag: Red-1', eta: 64, status: 'transit', waitSecs: 0 },
   ];
 
-  // Up For Grabs stock
-  state.canceledStock = [
-    { id: 'c1', name: 'Asian Sesame Tofu Bowl', qty: 1, createdAtSimSecs: 51, canceledBy: 'Customer' },
-    { id: 'c2', name: 'Garlic Dip Portion', qty: 1, createdAtSimSecs: 15, canceledBy: 'Customer' },
-  ];
+  // Up For Grabs stock — starts empty. Only items from cancelled active/packed orders enter here.
+  state.canceledStock = [];
 
   state.firstOrderSent = true;
 }
@@ -154,6 +151,7 @@ export function Dashboard() {
   const [showPoolConfirm, setShowPoolConfirm] = useState(false);
   const [poolConfirmItems, setPoolConfirmItems] = useState<Array<{name: string; ageMins: number; matchId: string}>>([]);
   const pendingAcceptOrderId = React.useRef<string | null>(null);
+  const orderArrivalRealTimestampsRef = React.useRef<number[]>([]);
 
   const s = stateRef.current; // convenient alias for reading state in render
 
@@ -337,12 +335,32 @@ export function Dashboard() {
   }
 
   function startItem(orderId: string, itemId: string) {
-    const order = stateRef.current.orders[orderId];
+    const state = stateRef.current;
+    const order = state.orders[orderId];
     if (!order) return;
     const item = order.items.find(i => i.id === itemId);
     if (!item) return;
     item.state = 'Cooking';
     item.cookingElapsedSimSecs = 0;
+
+    // Place this newly started cooking item directly after existing cooking items in this station
+    const station = item.station;
+    const existingCooking: Item[] = [];
+    Object.values(state.orders).forEach(o => {
+      if (o.status === 'active') {
+        o.items.forEach(it => {
+          if (it.station === station && it.id !== item.id && it.state === 'Cooking') {
+            existingCooking.push(it);
+          }
+        });
+      }
+    });
+    existingCooking.sort((a, b) => a.queuePriority - b.queuePriority);
+    const maxCookingPriority = existingCooking.length > 0
+      ? existingCooking[existingCooking.length - 1].queuePriority
+      : Date.now();
+    item.queuePriority = maxCookingPriority + 1;
+
     update();
   }
 
@@ -415,8 +433,8 @@ export function Dashboard() {
     });
 
     order.completedAt = Date.now();
-    const velocity = (order.completedAt - (order.acceptedAt ?? order.completedAt)) / 60000;
-    state.shiftStats.velocities.push(velocity);
+    const systemPrepMins = Math.max(1, Math.round(((order.elapsedPrepSimSecs || 0) + (order.sittingSecs || 0)) / 60 * 10) / 10);
+    state.shiftStats.velocities.push(systemPrepMins);
     if (onTime) state.shiftStats.onTimeCount++;
     state.shiftStats.totalCompleted++;
     state.completedRush++;
@@ -436,21 +454,30 @@ export function Dashboard() {
     if (!order) return;
     const snapshot = deepClone(order);
 
-    // Only items in preparation queue (active/packed orders) move to Up for Grabs
-    if (order.status !== 'new') {
-      order.items.forEach(item => {
-        state.canceledStock.push({ id: makeId(), name: item.name, qty: item.qty, createdAtSimSecs: state.currentSimSecs || 0, canceledBy: 'Kitchen' });
+    // Only items that are getting prepped (Cooking), already cooked (Ready), or in packed orders move to Up for Grabs.
+    // Unaccepted ('new') orders and untouched queued/held items NEVER go to Up for Grabs.
+    const preppedItems = order.status === 'packed'
+      ? order.items
+      : order.status === 'active'
+        ? order.items.filter(item => item.state === 'Cooking' || item.state === 'Ready')
+        : [];
+
+    preppedItems.forEach(item => {
+      state.canceledStock.push({
+        id: makeId(),
+        name: item.name,
+        qty: item.qty,
+        createdAtSimSecs: state.currentSimSecs || 0,
+        canceledBy: 'Kitchen',
       });
-    }
+    });
 
     pushUndo(`Order ${ordNum(orderId)} cancelled`, () => {
       stateRef.current.orders[orderId] = snapshot;
-      if (order.status !== 'new') {
-        order.items.forEach(item => {
-          const idx = stateRef.current.canceledStock.findIndex(c => c.name === item.name);
-          if (idx !== -1) stateRef.current.canceledStock.splice(idx, 1);
-        });
-      }
+      preppedItems.forEach(item => {
+        const idx = stateRef.current.canceledStock.findIndex(c => c.name === item.name);
+        if (idx !== -1) stateRef.current.canceledStock.splice(idx, 1);
+      });
       stateRef.current.shiftStats.rejectedCount = Math.max(0, stateRef.current.shiftStats.rejectedCount - 1);
     });
 
@@ -466,9 +493,16 @@ export function Dashboard() {
     const order = state.orders[orderId];
     if (!order) return;
 
-    // Only items in preparation queue (active/packed orders) move to Up for Grabs
-    if (order.status !== 'new') {
-      order.items.forEach(item => {
+    // Only items that are getting prepped (Cooking), already cooked (Ready), or in packed orders move to Up for Grabs.
+    // Unaccepted ('new') orders and untouched queued/held items NEVER go to Up for Grabs.
+    const preppedItems = order.status === 'packed'
+      ? order.items
+      : order.status === 'active'
+        ? order.items.filter(item => item.state === 'Cooking' || item.state === 'Ready')
+        : [];
+
+    if (preppedItems.length > 0) {
+      preppedItems.forEach(item => {
         state.canceledStock.push({
           id: makeId(),
           name: item.name,
@@ -477,7 +511,7 @@ export function Dashboard() {
           canceledBy: 'Customer',
         });
       });
-      setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer — Items moved to Up for Grabs`);
+      setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer — ${preppedItems.length} prepped item(s) moved to Up for Grabs`);
     } else {
       setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer`);
     }
@@ -507,13 +541,33 @@ export function Dashboard() {
   }
 
   function prepareInBulk(name: string, station: string) {
+    const state = stateRef.current;
     let changed = false;
-    Object.values(stateRef.current.orders).forEach(order => {
+
+    // Find highest priority among currently cooking items in this station
+    const existingCooking: Item[] = [];
+    Object.values(state.orders).forEach(o => {
+      if (o.status === 'active') {
+        o.items.forEach(it => {
+          if (it.station === station && it.state === 'Cooking') {
+            existingCooking.push(it);
+          }
+        });
+      }
+    });
+    existingCooking.sort((a, b) => a.queuePriority - b.queuePriority);
+    let basePriority = existingCooking.length > 0
+      ? existingCooking[existingCooking.length - 1].queuePriority
+      : Date.now();
+
+    Object.values(state.orders).forEach(order => {
       if (order.status === 'active') {
         order.items.forEach(item => {
           if ((item.state === 'Queued' || item.state === 'Hold') && item.name === name && item.station === station) {
             item.state = 'Cooking';
             item.cookingElapsedSimSecs = 0;
+            basePriority += 2;
+            item.queuePriority = basePriority;
             changed = true;
           }
         });
@@ -522,11 +576,13 @@ export function Dashboard() {
     if (changed) update();
   }
 
-  function moveQueueItem(orderId: string, itemId: string, direction: 'up' | 'down') {
+  function moveQueueItem(orderId: string, itemIds: string | string[], direction: 'up' | 'down') {
     const state = stateRef.current;
-    const item  = Object.values(state.orders).flatMap(o => o.items).find(i => i.id === itemId);
-    if (!item) return;
-    const station = item.station;
+    const ids = Array.isArray(itemIds) ? itemIds : [itemIds];
+    const primary = Object.values(state.orders).flatMap(o => o.items).find(i => ids.includes(i.id));
+    if (!primary) return;
+    const station = primary.station;
+
     const all: Array<{orderId: string; item: Item}> = [];
     Object.values(state.orders).forEach(o => {
       if (o.status === 'active') {
@@ -536,21 +592,35 @@ export function Dashboard() {
       }
     });
     all.sort((a, b) => a.item.queuePriority - b.item.queuePriority);
-    const idx = all.findIndex(x => x.item.id === itemId);
-    if (idx === -1) return;
-    if (direction === 'up' && idx > 0) {
-      const t = all[idx].item.queuePriority;
-      all[idx].item.queuePriority     = all[idx - 1].item.queuePriority;
-      all[idx - 1].item.queuePriority = t;
-    } else if (direction === 'down' && idx < all.length - 1) {
-      const t = all[idx].item.queuePriority;
-      all[idx].item.queuePriority     = all[idx + 1].item.queuePriority;
-      all[idx + 1].item.queuePriority = t;
+
+    const indices = ids.map(id => all.findIndex(x => x.item.id === id)).filter(idx => idx !== -1).sort((a, b) => a - b);
+    if (indices.length === 0) return;
+
+    const minIdx = indices[0];
+    const maxIdx = indices[indices.length - 1];
+
+    if (direction === 'up' && minIdx > 0) {
+      const swapTarget = all[minIdx - 1];
+      const dragged = all.filter(x => ids.includes(x.item.id));
+      const remaining = all.filter(x => !ids.includes(x.item.id));
+      const targetIdx = remaining.findIndex(x => x.item.id === swapTarget.item.id);
+      remaining.splice(targetIdx, 0, ...dragged);
+      const base = Date.now();
+      remaining.forEach((x, i) => { x.item.queuePriority = base + i * 10; });
+      update();
+    } else if (direction === 'down' && maxIdx < all.length - 1) {
+      const swapTarget = all[maxIdx + 1];
+      const dragged = all.filter(x => ids.includes(x.item.id));
+      const remaining = all.filter(x => !ids.includes(x.item.id));
+      const targetIdx = remaining.findIndex(x => x.item.id === swapTarget.item.id);
+      remaining.splice(targetIdx + 1, 0, ...dragged);
+      const base = Date.now();
+      remaining.forEach((x, i) => { x.item.queuePriority = base + i * 10; });
+      update();
     }
-    update();
   }
 
-  function reorderQueue(draggedItemId: string, targetItemId: string, station: string) {
+  function reorderQueue(draggedItemId: string | string[], targetItemId: string, station: string) {
     const state = stateRef.current;
     const all: Array<{orderId: string; item: Item}> = [];
     Object.values(state.orders).forEach(o => {
@@ -561,13 +631,18 @@ export function Dashboard() {
       }
     });
     all.sort((a, b) => a.item.queuePriority - b.item.queuePriority);
-    const dIdx = all.findIndex(x => x.item.id === draggedItemId);
-    const tIdx = all.findIndex(x => x.item.id === targetItemId);
-    if (dIdx === -1 || tIdx === -1 || dIdx === tIdx) return;
-    const [dragged] = all.splice(dIdx, 1);
-    all.splice(tIdx, 0, dragged);
+
+    const draggedIds = Array.isArray(draggedItemId) ? draggedItemId : [draggedItemId];
+    const draggedItems = all.filter(x => draggedIds.includes(x.item.id));
+    if (draggedItems.length === 0) return;
+
+    const remaining = all.filter(x => !draggedIds.includes(x.item.id));
+    const targetIdx = remaining.findIndex(x => x.item.id === targetItemId);
+    const insertIdx = targetIdx === -1 ? remaining.length : targetIdx;
+
+    remaining.splice(insertIdx, 0, ...draggedItems);
     const base = Date.now();
-    all.forEach((x, i) => { x.item.queuePriority = base + i; });
+    remaining.forEach((x, i) => { x.item.queuePriority = base + i * 10; });
     update();
   }
 
@@ -672,18 +747,22 @@ export function Dashboard() {
 
   function checkAndShowAnalytics(force: boolean = false) {
     const state = stateRef.current;
-    const active = Object.values(state.orders).filter(o =>
-      ['new', 'active', 'packed'].includes(o.status)
-    ).length;
-    const elapsedRush = (state.currentSimSecs || 0) - (state.rushStartSimSecs || 0);
-    const timeUp = elapsedRush >= CFG.RUSH_SESSION_SECS;
+    const allOrders = Object.values(state.orders);
 
-    if (force || timeUp || (active === 0 && state.completedRush >= CFG.ANALYTICS_MIN_ORDERS)) {
+    // Strict guard: NEVER show analytics if ANY orders exist on the board (Just Came In, Cooking, or Packed)
+    if (!force && allOrders.length > 0) {
+      return;
+    }
+
+    const elapsedRush = (state.currentSimSecs || 0) - (state.rushStartSimSecs || 0);
+    const rushDone = elapsedRush >= CFG.RUSH_SESSION_SECS;
+
+    if (force || (rushDone && allOrders.length === 0 && state.completedRush >= CFG.ANALYTICS_MIN_ORDERS)) {
       const s = state.shiftStats;
       const onTimeRate = s.totalCompleted > 0
         ? Math.round((s.onTimeCount / s.totalCompleted) * 100) : 0;
       const avgVel = s.velocities.length > 0
-        ? (s.velocities.reduce((a, b) => a + b, 0) / s.velocities.length).toFixed(1) : '—';
+        ? `${(s.velocities.reduce((a, b) => a + b, 0) / s.velocities.length).toFixed(1)} min` : '—';
       const sortedStations = Object.entries(s.peakLoad).sort((a, b) => b[1] - a[1]);
       const peakStation = sortedStations[0] as [string, number] | undefined;
 
@@ -697,27 +776,21 @@ export function Dashboard() {
         onTimeCount: s.onTimeCount,
       };
       state.showAnalyticsModal = true;
-
-      // Clean the whole screen and reset session
-      state.orders = {};
-      state.riders = [];
-      state.canceledStock = [];
-      state.stationLoads = { 'Hot': 0, 'Grill': 0, 'Assembly': 0 };
-      state.completedRush = 0;
-      state.rushStartSimSecs = state.currentSimSecs || 0;
-      state.shiftStats = {
-        onTimeCount: 0, totalCompleted: 0, velocities: [],
-        peakLoad: { 'Hot': 0, 'Grill': 0, 'Assembly': 0 },
-        coldLog: 0, rejectedCount: 0,
-      };
-      setUndoLabel('🏁 5-Minute Rush Session Complete! Reviewing Kitchen Analytics...');
-      playSound('handover', state.soundEnabled);
       update();
     }
   }
 
   function closeAnalytics() {
-    stateRef.current.showAnalyticsModal = false;
+    const state = stateRef.current;
+    state.showAnalyticsModal = false;
+    // Reset rush timer and stats for the next incoming session
+    state.completedRush = 0;
+    state.rushStartSimSecs = state.currentSimSecs || 0;
+    state.shiftStats = {
+      onTimeCount: 0, totalCompleted: 0, velocities: [],
+      peakLoad: { 'Hot': 0, 'Grill': 0, 'Assembly': 0 },
+      coldLog: 0, rejectedCount: 0,
+    };
     update();
   }
 
@@ -736,10 +809,12 @@ export function Dashboard() {
         }
       }
 
-      // Subsequent orders: ~20% chance per second (~1 every 5 s on average for balanced 40% slower flow)
+      // Subsequent orders: natural flow during rush session
+      // When rush session ends (elapsedRush >= CFG.RUSH_SESSION_SECS), orders naturally STOP coming so manager can clear all existing orders
+      const elapsedRush = (state.currentSimSecs || 0) - (state.rushStartSimSecs || 0);
+      const isRushActive = elapsedRush < CFG.RUSH_SESSION_SECS;
       const allChannelsPaused = Object.values(state.pausedChannels).every(v => v);
-      const activeOrdsCount = Object.values(state.orders).filter(o => ['new', 'active', 'packed'].includes(o.status)).length;
-      if (state.isOpen && state.firstOrderSent && !allChannelsPaused && !state.throttleActive && !isEmbedMode && Math.random() < 0.20) {
+      if (state.isOpen && state.firstOrderSent && isRushActive && !allChannelsPaused && !state.throttleActive && !isEmbedMode) {
         generateSimulatedOrder();
       }
 
@@ -803,8 +878,8 @@ export function Dashboard() {
               order.packedAt = Date.now();
               const onTime = order.slaSecsRemaining >= 0;
               order.completedAt = Date.now();
-              const vel = (order.completedAt - (order.acceptedAt ?? order.completedAt)) / 60000;
-              state.shiftStats.velocities.push(vel);
+              const systemPrepMins = Math.max(1, Math.round(((order.elapsedPrepSimSecs || 0) + (order.sittingSecs || 0)) / 60 * 10) / 10);
+              state.shiftStats.velocities.push(systemPrepMins);
               if (onTime) state.shiftStats.onTimeCount++;
               state.shiftStats.totalCompleted++;
               state.completedRush++;
@@ -834,8 +909,8 @@ export function Dashboard() {
             const rider = state.riders.find(r => r.orderId === order.id);
             const onTime = order.slaSecsRemaining >= 0;
             order.completedAt = Date.now();
-            const vel = (order.completedAt - (order.acceptedAt ?? order.completedAt)) / 60000;
-            state.shiftStats.velocities.push(vel);
+            const systemPrepMins = Math.max(1, Math.round(((order.elapsedPrepSimSecs || 0) + (order.sittingSecs || 0)) / 60 * 10) / 10);
+            state.shiftStats.velocities.push(systemPrepMins);
             if (onTime) state.shiftStats.onTimeCount++;
             state.shiftStats.totalCompleted++;
             state.completedRush++;
@@ -848,15 +923,6 @@ export function Dashboard() {
           }
         }
       });
-
-      // Simulated Customer Cancellations mid-cook or in Packed & Waiting (~5% chance per tick)
-      if (state.isOpen && Math.random() < 0.05) {
-        const eligibleOrders = Object.values(state.orders).filter(o => o.status === 'active' || o.status === 'packed');
-        if (eligibleOrders.length > 0) {
-          const target = eligibleOrders[Math.floor(Math.random() * eligibleOrders.length)];
-          cancelOrderByCustomer(target.id);
-        }
-      }
 
       // Rider ETAs
       state.riders.forEach(rider => {
@@ -891,6 +957,21 @@ export function Dashboard() {
   // ── Simulated Order Generator ─────────────────────────────────
   function generateSimulatedOrder() {
     const state = stateRef.current;
+
+    // Enforce real-time rate limiting:
+    // Max 15 orders per 2 minutes (120,000 ms) real time, spaced out by at least 6 real seconds
+    const now = Date.now();
+    orderArrivalRealTimestampsRef.current = orderArrivalRealTimestampsRef.current.filter(
+      t => now - t < 120000
+    );
+    if (orderArrivalRealTimestampsRef.current.length >= 15) {
+      return; // Density limit reached: no more than 15 orders in a 2-minute real-time window
+    }
+    const lastArrival = orderArrivalRealTimestampsRef.current[orderArrivalRealTimestampsRef.current.length - 1] || 0;
+    if (now - lastArrival < 6000) {
+      return; // Minimum interval: at least 6 real seconds between incoming orders
+    }
+
     const brandNames = Object.keys(BRANDS);
     const selectedBrand = brandNames[Math.floor(Math.random() * brandNames.length)];
     const brandData = BRANDS[selectedBrand];
@@ -920,6 +1001,7 @@ export function Dashboard() {
       notes: Math.random() < 0.25 ? pickNote() : '',
     });
     state.orders[id] = order;
+    orderArrivalRealTimestampsRef.current.push(now);
 
     if (state.autoAccept) {
       acceptOrderCore(id, state);
@@ -957,7 +1039,7 @@ export function Dashboard() {
 
   const showPauseBanner   = !!(s.pausedUntil && s.currentSimSecs < s.pausedUntil);
   const pausedRemaining   = Math.max(0, (s.pausedUntil ?? 0) - s.currentSimSecs);
-  const pausedList        = Object.entries(s.pausedChannels).filter(([, p]) => p).map(([c]) => c === 'DirectApp' ? 'Own App' : c);
+  const pausedList        = Object.entries(s.pausedChannels).filter(([, p]) => p).map(([c]) => c === 'DirectApp' ? 'App' : c);
 
 
   // ── Render ────────────────────────────────────────────────────
@@ -1006,12 +1088,11 @@ export function Dashboard() {
       >
         {/* Col 1: New Orders */}
         <section style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: 'var(--wk-b)', background: 'var(--wk-vellum)' }}>
-          <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>Just Came In</span>
+          <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)', boxSizing: 'border-box' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)', lineHeight: 1 }}>Just Came In</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 18, padding: '0 4px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderRadius: 'var(--wk-r)', fontSize: 10, fontWeight: 700 }}>{newOrders.length}</span>
           </div>
-          <div className="wk-scroll" style={{ flex: 1, padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ flexShrink: 0, height: 12 }} aria-hidden />
+          <div className="wk-scroll" style={{ flex: 1, padding: '10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {newOrders.length === 0 ? (
               <EmptyState icon="◎" text="No new orders" />
             ) : newOrders.map(order => (
@@ -1032,15 +1113,15 @@ export function Dashboard() {
 
         {/* Col 2: Cooking Now */}
         <section style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: 'var(--wk-b)', background: 'var(--wk-vellum)' }}>
-          <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)' }}>Cooking Now</span>
+          <div style={{ flexShrink: 0, height: 'var(--wk-ch)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)', boxSizing: 'border-box' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wk-graphite)', lineHeight: 1 }}>Cooking Now</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 18, padding: '0 4px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderRadius: 'var(--wk-r)', fontSize: 10, fontWeight: 700 }}>{activeOrders.length}</span>
           </div>
           <div
             className="wk-scroll"
             style={activeOrders.length === 0
               ? { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }
-              : { flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 10px 10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gridAutoRows: 'min-content', alignContent: 'start', alignItems: 'start', gap: 10 }
+              : { flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gridAutoRows: 'min-content', alignContent: 'start', alignItems: 'start', gap: 10 }
             }
           >
             {activeOrders.length === 0 && <EmptyState icon="◎" text="Kitchen is clear" />}
@@ -1147,33 +1228,33 @@ function SystemBanners({ isOpen, throttleActive, showPause, pausedList, pausedBr
 
   if (!isOpen) {
     banners.push(
-      <div key="closed" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--wk-gold)', color: 'var(--wk-ink)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
+      <div key="closed" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, height: 44, boxSizing: 'border-box', padding: '0 16px', background: 'var(--wk-gold)', color: 'var(--wk-ink)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
         <span style={{ fontSize: 18 }}>⛔</span>
         <span style={{ flex: 1 }}>Kitchen is CLOSED — not taking new orders right now</span>
-        <GhostBtn onClick={onReopen} style={{ fontSize: 11 }}>Re-open Kitchen</GhostBtn>
+        <GhostBtn onClick={onReopen} style={{ fontSize: 11, padding: '4px 10px' }}>Re-open Kitchen</GhostBtn>
       </div>
     );
-    top += 38;
+    top += 44;
   }
 
   if (throttleActive) {
     banners.push(
-      <div key="throttle" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
+      <div key="throttle" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, height: 44, boxSizing: 'border-box', padding: '0 16px', background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
         <span style={{ fontSize: 18 }}>⚠️</span>
         <span>Kitchen is very busy — delivery apps slowed down by 5 min</span>
       </div>
     );
-    top += 38;
+    top += 44;
   }
 
   if (showPause) {
     const pausedKeys = Object.keys(pausedBrands || {}).filter(k => k !== 'All Brands' && pausedBrands[k]);
     const brandTxt = !pausedBrands?.['All Brands'] && pausedKeys.length > 0 ? ` [${pausedKeys.join(', ')}]` : '';
     banners.push(
-      <div key="pause" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, padding: '8px 16px', background: 'var(--wk-gold)', color: 'var(--wk-ink)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
+      <div key="pause" role="alert" style={{ position: 'fixed', left: 0, right: 0, zIndex: 190, top, height: 44, boxSizing: 'border-box', padding: '0 16px', background: 'var(--wk-gold)', color: 'var(--wk-ink)', borderBottom: 'var(--wk-b)', display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 13 }}>
         <span style={{ fontSize: 18 }}>⏸</span>
         <span>Apps paused: {pausedList.join(', ')}{brandTxt} ({fmtMSS(pausedRemaining)} remaining)</span>
-        <GhostBtn onClick={onResumeApps} style={{ marginLeft: 'auto', fontSize: 11 }}>Resume Apps</GhostBtn>
+        <GhostBtn onClick={onResumeApps} style={{ marginLeft: 'auto', fontSize: 11, padding: '4px 10px' }}>Resume Apps</GhostBtn>
       </div>
     );
   }
@@ -1187,15 +1268,14 @@ function MainGrid({ children, isOpen, throttleActive, showPause }: {
 }) {
   const bannerCount = (!isOpen ? 1 : 0) + (throttleActive ? 1 : 0) + (showPause ? 1 : 0);
   return (
-    <main style={{
-      position: 'fixed',
-      top: `calc(var(--wk-hh) + ${bannerCount * 38}px)`,
-      left: 0, right: 0, bottom: 0,
-      display: 'grid',
-      gridTemplateColumns: '18% 32% 30% 20%',
-      transition: 'top 0.2s',
-      borderTop: '6px solid var(--wk-vellum)',
-    }}>
+    <main
+      className="wk-main-grid"
+      style={{
+        position: 'fixed',
+        top: `calc(var(--wk-hh) + ${bannerCount * 44}px)`,
+        left: 0, right: 0, bottom: 0,
+      }}
+    >
       {children}
     </main>
   );
@@ -1258,7 +1338,7 @@ export function ChannelBadge({ source }: { source: string }) {
     Swiggy:    { bg: '#FC8019', label: 'Swiggy' },
     Zomato:    { bg: '#CB202D', label: 'Zomato' },
     Phone:     { bg: '#2c5282', label: 'Phone' },
-    DirectApp: { bg: '#6d28d9', label: 'Own App' },
+    DirectApp: { bg: '#6d28d9', label: 'App' },
   };
   const cfg = map[source] ?? { bg: '#374151', label: source };
   return (
