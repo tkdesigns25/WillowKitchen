@@ -293,14 +293,14 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                 }}
                 style={{
                   padding: '8px 10px',
-                  border: '2px dashed #6d28d9',
-                  borderLeft: '4px solid #6d28d9',
+                  border: '2px dashed var(--wk-green)',
+                  borderLeft: '4px solid var(--wk-green)',
                   borderRadius: 'var(--wk-r)',
-                  background: 'linear-gradient(135deg, rgba(109,40,217,0.08) 0%, rgba(248,228,125,0.2) 100%)',
+                  background: 'linear-gradient(135deg, rgba(30,107,58,0.08) 0%, rgba(248,228,125,0.18) 100%)',
                   display: 'flex', flexDirection: 'column', gap: 6,
                   cursor: 'grab',
                   userSelect: 'none',
-                  boxShadow: '0 1px 4px rgba(109,40,217,0.15)',
+                  boxShadow: '0 1px 4px rgba(30,107,58,0.15)',
                   flexShrink: 0,
                 }}
               >
@@ -308,7 +308,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3, background: '#6d28d9', color: '#fff' }}>
+                      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3, background: 'var(--wk-green)', color: '#fff' }}>
                         PREP TOGETHER
                       </span>
                       <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--wk-ink)' }}>
@@ -341,7 +341,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                     <button
                       className="wk-interactive"
                       onClick={e => { e.stopPropagation(); onGroupPrep(name, station); }}
-                      style={{ padding: '4px 8px', border: 'none', borderRadius: 'var(--wk-r)', fontSize: 9, fontWeight: 800, cursor: 'pointer', background: '#6d28d9', color: '#fff', fontFamily: 'var(--wk-font-ui)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
+                      style={{ padding: '4px 8px', border: 'none', borderRadius: 'var(--wk-r)', fontSize: 9, fontWeight: 800, cursor: 'pointer', background: 'var(--wk-green)', color: '#fff', fontFamily: 'var(--wk-font-ui)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
                     >
                       Prep Together
                     </button>
@@ -349,7 +349,7 @@ function StationQueue({ station, orders, stationLoad, onStartItem, onHoldItem, o
                 </div>
 
                 {/* Individual sub-items row */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4, borderTop: '1px dashed rgba(109,40,217,0.25)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4, borderTop: '1px dashed rgba(30,107,58,0.25)' }}>
                   {items.map(sub => (
                     <div
                       key={sub.item.id}

@@ -99,8 +99,12 @@ export const NOTES_POOL = [
 ];
 
 export const RIDER_NAMES = [
-  'Rajan K.', 'Priya S.', 'Arjun M.', 'Sundar D.',
-  'Meena P.', 'Vikram J.', 'Anita R.', 'Deepak L.',
+  'Rajan K.', 'Priya S.', 'Arjun M.', 'Sundar D.', 'Meena P.', 'Vikram J.',
+  'Anita R.', 'Deepak L.', 'Kavita N.', 'Suresh T.', 'Rohit B.', 'Divya G.',
+  'Manoj V.', 'Pooja H.', 'Ganesh C.', 'Sneha W.', 'Amitabh K.', 'Harish P.',
+  'Farhan Q.', 'Tarun N.', 'Bhavna D.', 'Manish S.', 'Sunita Y.', 'Karthik R.',
+  'Zoya M.', 'Pradeep J.', 'Shalini B.', 'Naveen C.', 'Swati G.', 'Kiran V.',
+  'Devendra P.', 'Ritu S.', 'Sameer B.', 'Anjali K.', 'Mohit D.', 'Tanvi M.'
 ];
 
 const COLORS = ['Blue', 'Red', 'Green', 'Yellow', 'Orange'];
@@ -108,7 +112,7 @@ const COLORS = ['Blue', 'Red', 'Green', 'Yellow', 'Orange'];
 let _idCounter = 0;
 export function makeId() { return `item-${Date.now()}-${++_idCounter}`; }
 
-let _nameIdx = 0;
+let _nameIdx = Math.floor(Math.random() * RIDER_NAMES.length);
 export function pickRiderName()  { return RIDER_NAMES[_nameIdx++ % RIDER_NAMES.length]; }
 export function randomColor()    { return COLORS[Math.floor(Math.random() * COLORS.length)]; }
 export function pickCustomer()   { return CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)]; }
@@ -172,7 +176,7 @@ export function createInitialState(): AppState {
     riders:            [],
     orderCounter:      100,
     soundEnabled:      safeStorage('wk-sound') !== 'false',
-    isOpen:            false,
+    isOpen:            true,
     autoAccept:        false,
     canceledStock:     [],
     currentSimSecs:    0,

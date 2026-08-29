@@ -72,72 +72,11 @@ function updateCapacity(state: AppState) {
 }
 
 
-function seedPreviewState(state: AppState) {
-  state.isOpen = true;
-  state.orderCounter = 108;
-  state.orders = {};
-  state.riders = [];
-  state.canceledStock = [];
-  
-  // Order #108 (Just Came In)
-  state.orders['item-108'] = {
-    id: 'item-108',
-    brand: 'Burger Craft',
-    source: 'Swiggy',
-    customer: 'Rahul S.',
-    items: [
-      makeItem('Classic French Fries', 1, 'Extra Spicy please!'),
-      makeItem('Smoky BBQ Chicken Skewers', 1)
-    ],
-    notes: '',
-    status: 'new',
-    arrivedAt: Date.now() - 57000,
-    autoCancelSecs: 132,
-    acceptedAt: null, packedAt: null, completedAt: null,
-    slaMinutes: 15, slaSecsRemaining: 900, elapsedPrepSimSecs: 0,
-    riderStatus: 'none', riderEta: null, riderId: null, riderWaitSecs: 0, hasOOS: false
-  };
-
-  // Order #102 (Cooking Now)
-  const o102 = {
-    id: 'item-102',
-    brand: 'Burger Craft',
-    source: 'Swiggy',
-    customer: 'Siddharth M.',
-    items: [
-      { id: 'i102-1', name: 'Crispy Golden Onion Rings', qty: 1, station: 'Grill', prepSecs: 10, state: 'Cooking' as const, cookingElapsedSimSecs: 5, queuePriority: 1, modifier: '' },
-      { id: 'i102-2', name: 'Garlic Herb Grilled Chicken', qty: 1, station: 'Grill', prepSecs: 16, state: 'Ready' as const, cookingElapsedSimSecs: 16, queuePriority: 2, modifier: '' },
-      { id: 'i102-3', name: 'Grilled Chicken Wings (6pcs)', qty: 1, station: 'Grill', prepSecs: 14, state: 'Cooking' as const, cookingElapsedSimSecs: 5, queuePriority: 3, modifier: '' }
-    ],
-    notes: '', status: 'active' as const, arrivedAt: Date.now() - 84000, autoCancelSecs: 0,
-    acceptedAt: Date.now() - 84000, packedAt: null, completedAt: null,
-    slaMinutes: 15, slaSecsRemaining: 816, elapsedPrepSimSecs: 84,
-    riderStatus: 'transit' as const, riderEta: 180, riderId: 'RD-002', riderWaitSecs: 0, hasOOS: false
-  };
-  state.orders['item-102'] = o102;
-
-  // Riders
-  state.riders = [
-    { id: 'RD-002', name: 'Priya S.', platform: 'Swiggy', orderId: 'item-102', tag: 'Tag: Blue-2', eta: 180, status: 'transit', waitSecs: 0 },
-    { id: 'RD-001', name: 'Rajan K.', platform: 'Swiggy', orderId: null, tag: 'Tag: Red-1', eta: 64, status: 'transit', waitSecs: 0 },
-  ];
-
-  // Up For Grabs stock — starts empty. Only items from cancelled active/packed orders enter here.
-  state.canceledStock = [];
-
-  state.firstOrderSent = true;
-}
-
 // ── Main Willow Kitchen Component ─────────────────────────────────────────
 export function Dashboard() {
-  const isEmbedMode = React.useMemo(() => typeof window !== "undefined" && (window.location.search.includes("preview=true") || window.self !== window.top), []);
   const stateRef = useRef<AppState>(null!);
   if (!stateRef.current) {
-    const s = createInitialState();
-    if (typeof window !== "undefined" && (window.location.search.includes("preview=true") || window.self !== window.top)) {
-      seedPreviewState(s);
-    }
-    stateRef.current = s;
+    stateRef.current = createInitialState();
   }
   const [, setVersion] = useState(0);
   const update = useCallback(() => setVersion(v => v + 1), []);
@@ -146,7 +85,6 @@ export function Dashboard() {
   const [showNewOrder,    setShowNewOrder]    = useState(false);
   const [showPause,       setShowPause]       = useState(false);
   const [showMenu,        setShowMenu]        = useState(false);
-  const [showTeaser,      setShowTeaser]      = useState(false);
   const [undoLabel,       setUndoLabel]       = useState('');
   const [showPoolConfirm, setShowPoolConfirm] = useState(false);
   const [poolConfirmItems, setPoolConfirmItems] = useState<Array<{name: string; ageMins: number; matchId: string}>>([]);
@@ -200,15 +138,27 @@ export function Dashboard() {
         platform: platforms[order.source] || order.source,
         orderId: null,
         tag: `Tag: ${randomColor()}-${Math.floor(Math.random() * 9) + 1}`,
-        eta: Math.floor(Math.random() * 180) + 60,
+        eta: 0,
         status: 'transit',
         waitSecs: 0,
       };
       state.riders.push(rider);
     }
+
+    // Realistic ETA distribution:
+    // ~35% arrive quickly / already outside (15–40s) -> quickly enters Riders Waiting at store
+    // ~45% normal transit (50–110s)
+    // ~20% far transit (130–220s)
+    const roll = Math.random();
+    const etaSecs = roll < 0.35
+      ? Math.floor(Math.random() * 25) + 15
+      : roll < 0.80
+        ? Math.floor(Math.random() * 60) + 50
+        : Math.floor(Math.random() * 90) + 130;
+
     rider.orderId  = orderId;
     rider.status   = 'transit';
-    rider.eta      = Math.floor(Math.random() * 180) + 60;
+    rider.eta      = etaSecs;
     rider.waitSecs = 0;
     order.riderId  = rider.id;
     order.riderStatus = 'transit';
@@ -454,13 +404,9 @@ export function Dashboard() {
     if (!order) return;
     const snapshot = deepClone(order);
 
-    // Only items that are getting prepped (Cooking), already cooked (Ready), or in packed orders move to Up for Grabs.
-    // Unaccepted ('new') orders and untouched queued/held items NEVER go to Up for Grabs.
-    const preppedItems = order.status === 'packed'
-      ? order.items
-      : order.status === 'active'
-        ? order.items.filter(item => item.state === 'Cooking' || item.state === 'Ready')
-        : [];
+    // STRICT RULE: ONLY items actively in 'Cooking' or 'Ready' states move to Up for Grabs.
+    // Untouched/queued/held items ('Queued' or 'Hold') NEVER go to Up for Grabs.
+    const preppedItems = order.items.filter(item => item.state === 'Cooking' || item.state === 'Ready');
 
     preppedItems.forEach(item => {
       state.canceledStock.push({
@@ -493,13 +439,9 @@ export function Dashboard() {
     const order = state.orders[orderId];
     if (!order) return;
 
-    // Only items that are getting prepped (Cooking), already cooked (Ready), or in packed orders move to Up for Grabs.
-    // Unaccepted ('new') orders and untouched queued/held items NEVER go to Up for Grabs.
-    const preppedItems = order.status === 'packed'
-      ? order.items
-      : order.status === 'active'
-        ? order.items.filter(item => item.state === 'Cooking' || item.state === 'Ready')
-        : [];
+    // STRICT RULE: ONLY items actively in 'Cooking' or 'Ready' states move to Up for Grabs.
+    // Untouched/queued/held items ('Queued' or 'Hold') NEVER go to Up for Grabs.
+    const preppedItems = order.items.filter(item => item.state === 'Cooking' || item.state === 'Ready');
 
     if (preppedItems.length > 0) {
       preppedItems.forEach(item => {
@@ -511,7 +453,7 @@ export function Dashboard() {
           canceledBy: 'Customer',
         });
       });
-      setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer — ${preppedItems.length} prepped item(s) moved to Up for Grabs`);
+      setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer — ${preppedItems.length} cooking item(s) moved to Up for Grabs`);
     } else {
       setUndoLabel(`⚠️ Order #${ordNum(orderId)} Cancelled by Customer`);
     }
@@ -814,8 +756,21 @@ export function Dashboard() {
       const elapsedRush = (state.currentSimSecs || 0) - (state.rushStartSimSecs || 0);
       const isRushActive = elapsedRush < CFG.RUSH_SESSION_SECS;
       const allChannelsPaused = Object.values(state.pausedChannels).every(v => v);
-      if (state.isOpen && state.firstOrderSent && isRushActive && !allChannelsPaused && !state.throttleActive && !isEmbedMode) {
+      if (state.isOpen && state.firstOrderSent && isRushActive && !allChannelsPaused && !state.throttleActive) {
         generateSimulatedOrder();
+      }
+
+      // Natural customer cancellation events during rush session (populates Up for Grabs with prepped items)
+      // Faster early cancellation trigger on first prepped order, then regular periodic rate
+      const cancelCandidates = Object.values(state.orders).filter(
+        o => o.status === 'active' && o.items.some(i => i.state === 'Cooking' || i.state === 'Ready')
+      );
+      const isEarlyGrabsNeeded = state.canceledStock.length === 0 && cancelCandidates.length >= 1 && (state.currentSimSecs || 0) >= 15;
+      if (state.isOpen && (isEarlyGrabsNeeded || Math.random() < 0.05)) {
+        if (cancelCandidates.length > 0) {
+          const toCancel = cancelCandidates[Math.floor(Math.random() * cancelCandidates.length)];
+          cancelOrderByCustomer(toCancel.id);
+        }
       }
 
       // Simulated time advances 3s per real second (40% slower)
@@ -939,13 +894,6 @@ export function Dashboard() {
         if (rider.status === 'arrived') rider.waitSecs = (rider.waitSecs || 0) + 3;
       });
 
-            // Re-seed preview loop if all orders clear in embed mode
-      if (isEmbedMode) {
-        const remainingActive = Object.values(state.orders).filter(o => ['new', 'active', 'packed'].includes(o.status)).length;
-        if (remainingActive === 0) {
-          seedPreviewState(state);
-        }
-      }
       updateCapacity(state);
       checkAndShowAnalytics();
       setVersion(v => v + 1);
@@ -976,10 +924,31 @@ export function Dashboard() {
     const selectedBrand = brandNames[Math.floor(Math.random() * brandNames.length)];
     const brandData = BRANDS[selectedBrand];
 
+    // Check currently active queue items for this brand to create Prep Together opportunities
+    const activeQueueItems = Object.values(state.orders)
+      .filter(o => o.status === 'active')
+      .flatMap(o => o.items)
+      .filter(i => (i.state === 'Queued' || i.state === 'Hold') && brandData.items.some(b => b.name === i.name));
+
+    // Check Up for Grabs stock matching this brand to create Up for Grabs match opportunities
+    const grabsMatches = state.canceledStock.filter(c => brandData.items.some(b => b.name === c.name));
+
     const n = Math.floor(Math.random() * 3) + 2;
     const items: Item[] = [];
     for (let i = 0; i < n; i++) {
-      const sel = brandData.items[Math.floor(Math.random() * brandData.items.length)];
+      let sel: { name: string; prepSecs: number };
+
+      // High likelihood of overlapping with active kitchen queue (Prep Together) or Up for Grabs
+      if (i === 0 && activeQueueItems.length > 0 && Math.random() < 0.65) {
+        const queueChoice = activeQueueItems[Math.floor(Math.random() * activeQueueItems.length)];
+        sel = brandData.items.find(b => b.name === queueChoice.name) || brandData.items[0];
+      } else if (i === 0 && grabsMatches.length > 0 && Math.random() < 0.70) {
+        const grabChoice = grabsMatches[Math.floor(Math.random() * grabsMatches.length)];
+        sel = brandData.items.find(b => b.name === grabChoice.name) || brandData.items[0];
+      } else {
+        sel = brandData.items[Math.floor(Math.random() * brandData.items.length)];
+      }
+
       const modifier = Math.random() < 0.30 ? pickNote() : '';
       const existing = items.find(x => x.name === sel.name);
       if (existing) { existing.qty++; if (!existing.modifier && modifier) existing.modifier = modifier; }
@@ -1058,14 +1027,14 @@ export function Dashboard() {
         doneCount={s.completed.length}
         stationLoads={s.stationLoads}
         clock={clock}
-        onOpen={() => { if (isEmbedMode) setShowTeaser(true); else setOpen(true); }}
-        onClose={() => { if (isEmbedMode) setShowTeaser(true); else setOpen(false); }}
-        onAutoAcceptOn={() => { if (isEmbedMode) setShowTeaser(true); else setAutoAccept(true); }}
-        onAutoAcceptOff={() => { if (isEmbedMode) setShowTeaser(true); else setAutoAccept(false); }}
+        onOpen={() => setOpen(true)}
+        onClose={() => setOpen(false)}
+        onAutoAcceptOn={() => setAutoAccept(true)}
+        onAutoAcceptOff={() => setAutoAccept(false)}
         onToggleSound={toggleSound}
-        onOpenNewOrder={() => { if (isEmbedMode) setShowTeaser(true); else setShowNewOrder(true); }}
-        onOpenPause={() => { if (isEmbedMode) setShowTeaser(true); else setShowPause(true); }}
-        onOpenMenu={() => { if (isEmbedMode) setShowTeaser(true); else setShowMenu(true); }}
+        onOpenNewOrder={() => setShowNewOrder(true)}
+        onOpenPause={() => setShowPause(true)}
+        onOpenMenu={() => setShowMenu(true)}
       />
 
       {/* ── System Banners ──────────────────────────────────── */}
@@ -1180,8 +1149,6 @@ export function Dashboard() {
         showNewOrder={showNewOrder}
         showPause={showPause}
         showMenu={showMenu}
-        showTeaser={showTeaser}
-        onCloseTeaser={() => setShowTeaser(false)}
         showReject={!!s.rejectingOrderId}
         showAnalytics={s.showAnalyticsModal}
         showPoolConfirm={showPoolConfirm}

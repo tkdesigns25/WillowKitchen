@@ -21,8 +21,8 @@ interface Props {
 const POOL_EXPIRY_SECS = 1800;
 
 export function Column4({ canceledStock, currentSimSecs, orders, packedOrders, riders, onRiderHandover, onCallRider }: Props) {
-  // ONLY show riders who have physically arrived at the kitchen while their order is still cooking
-  const arrivedRiders = riders.filter(r => r.orderId && orders[r.orderId]?.status === 'active' && r.status === 'arrived');
+  // Show all riders who have arrived at the kitchen pass
+  const arrivedRiders = riders.filter(r => r.status === 'arrived');
 
   return (
     <aside style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--wk-vellum)', height: '100%' }}>
@@ -274,7 +274,7 @@ function RiderCard({ rider, order }: {
       </div>
 
       <div style={{ fontSize: 9, color: 'var(--wk-green)', fontWeight: 700 }}>
-        🟢 Arrived
+        🟢 Arrived {rider.waitSecs ? `(${fmtMSS(rider.waitSecs)})` : ''}
       </div>
 
       {rider.orderId && (

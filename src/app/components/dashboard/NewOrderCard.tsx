@@ -28,14 +28,14 @@ export function NewOrderCard({ order, oosItems, stationLoads, orders, canceledSt
   const stns = [...new Set(order.items.map(i => i.station || 'Hot'))];
   const capWarns = stns.filter(s => (stationLoads[s] || 0) >= 90).map(s => `${s} Station load is high`);
 
-  // Prep Together matches (items already in kitchen queue/cooking matching this order)
+  // Prep Together matches (items already in active kitchen queue/cooking matching this order)
   const incoming = new Set(order.items.map(i => i.name));
   const prepTogetherHits: Record<string, number> = {};
   Object.values(orders).forEach(o => {
     if (o.id === order.id) return; // skip self
-    if (o.status === 'active' || o.status === 'new') {
+    if (o.status === 'active') {
       o.items.forEach(item => {
-        if (incoming.has(item.name) && item.state !== 'Ready') {
+        if (incoming.has(item.name) && (item.state === 'Queued' || item.state === 'Hold')) {
           prepTogetherHits[item.name] = (prepTogetherHits[item.name] || 0) + item.qty;
         }
       });

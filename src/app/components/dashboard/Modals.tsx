@@ -11,8 +11,6 @@ interface ModalsProps {
   showMenu: boolean;
   showReject: boolean;
   showAnalytics: boolean;
-  showTeaser?: boolean;
-  onCloseTeaser?: () => void;
   showPoolConfirm: boolean;
   poolConfirmItems: PoolItem[];
   rejectReason: string | null;
@@ -45,7 +43,6 @@ export function DashboardModals(props: ModalsProps) {
       {props.showMenu     && <MenuModal {...props} />}
       {props.showReject   && <RejectModal {...props} />}
       {props.showAnalytics && props.analyticsSnapshot && <AnalyticsModal {...props} data={props.analyticsSnapshot} />}
-      {props.showTeaser && <TeaserHookModal onClose={props.onCloseTeaser || (() => {})} />}
       {props.showPoolConfirm && props.poolConfirmItems.length > 0 && (
         <PoolItemsModal
           items={props.poolConfirmItems}
@@ -603,43 +600,6 @@ function PoolItemsModal({ items, onUseItems, onCookFresh, onClose }: {
         <GhostBtn onClick={onCookFresh} style={{ flex: 1, justifyContent: 'center' }}>Cook Fresh Instead</GhostBtn>
         <OxBtn onClick={onUseItems} style={{ flex: 1, justifyContent: 'center', background: '#d97706', borderColor: '#d97706' }}>↺ Use Up for Grabs Items</OxBtn>
       </ModalFoot>
-    </ModalShell>
-  );
-}
-
-
-
-export function TeaserHookModal({ onClose }: { onClose: () => void }) {
-  return (
-    <ModalShell onClose={onClose} width={460}>
-      <div style={{ padding: '24px 28px' }}>
-        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--wk-oxblood)', marginBottom: 10 }}>
-          VIEW FULL WORKING PRODUCT?
-        </div>
-        <h3 style={{ fontFamily: 'var(--wk-font-ser)', fontSize: 20, fontWeight: 700, color: 'var(--wk-ink)', marginBottom: 10, lineHeight: 1.25 }}>
-          This advanced control is locked in preview mode.
-        </h3>
-        <p style={{ fontSize: 13, color: 'var(--wk-graphite)', lineHeight: 1.65, marginBottom: 24 }}>
-          Would you like to experience the full, live Willow Kitchen app with simulated order floods and active platform toggles?
-        </p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <GhostBtn onClick={onClose}>No, Keep Reading</GhostBtn>
-          <a
-            href="https://willow-kitchen.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onClose}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px',
-              background: 'var(--wk-oxblood)', color: 'var(--wk-vellum)', border: 'none',
-              borderRadius: 'var(--wk-r)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
-              textTransform: 'uppercase', textDecoration: 'none'
-            }}
-          >
-            Yes, Open Live App &rarr;
-          </a>
-        </div>
-      </div>
     </ModalShell>
   );
 }
